@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import docker from '@/lib/docker';
 import path from 'path';
 import fs from 'fs';
-
-const BACKUP_DIR = path.join(process.cwd(), 'backups');
+import { getSetting } from '@/lib/db';
 
 export async function POST(req: Request) {
     try {
+        const BACKUP_DIR = await getSetting('BACKUP_DIR', path.join(process.cwd(), 'backups'));
+
         const { type, containerName, volumeName, filename } = await req.json();
 
         if (!filename) {

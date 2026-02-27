@@ -2,24 +2,20 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
-
-// Define the root directory to which the file manager has access.
-// IMPORTANT: Adjust this to the actual directory you want to expose.
-// Using the project root for now, but in production, restrict this.
-const ROOT_DIR = process.env.FILE_MANAGER_ROOT || path.resolve(process.cwd(), '..');
+import { getSetting } from '@/lib/db';
 
 // Helper to sanitize and resolve paths to prevent directory traversal attacks
-const resolveSafePath = (userPath: string | null) => {
-    if (!userPath) return ROOT_DIR;
+const resolveSafePath = (userPath: string | null, rootDir: string) => {
+    if (!userPath) return rootDir;
 
     // Normalize path to remove ../ and ./
     const normalizedPath = path.normalize(userPath).replace(/^(\.\.(\/|\\|$))+/, '');
 
-    // Resolve absolute path (Ensure it starts at ROOT_DIR correctly)
-    const resolvedPath = path.join(ROOT_DIR, normalizedPath.replace(/^\//, ''));
+    // Resolve absolute path (Ensure it starts at rootDir correctly)
+    const resolvedPath = path.join(rootDir, normalizedPath.replace(/^\//, ''));
 
-    // Ensure the resolved path stays within the ROOT_DIR
-    if (!resolvedPath.startsWith(ROOT_DIR)) {
+    // Ensure the resolved path stays within the rootDir
+    if (!resolvedPath.startsWith(rootDir)) {
         throw new Error('Access denied: Invalid path');
     }
 
@@ -27,7 +23,7 @@ const resolveSafePath = (userPath: string | null) => {
 };
 
 // Map system file stats to the format expected by the frontend library
-const mapFileStats = (fileName: string, stats: fsSync.Stats, fullPath: string) => {
+const mapFileStats = (fileName: string, stats: fsSync.Stats, fullPath: string, rootDir: string) => {
     const isDir = stats.isDirectory();
     return {
         id: Buffer.from(fullPath).toString('base64'), // Unique ID based on path
@@ -37,18 +33,19 @@ const mapFileStats = (fileName: string, stats: fsSync.Stats, fullPath: string) =
         modDate: stats.mtime,
         // Optional file extension for icons on frontend
         ext: isDir ? undefined : path.extname(fileName).toLowerCase(),
-        // The path relative to ROOT_DIR. Ensure it starts with / and uses forward slashes
-        path: (fullPath.replace(ROOT_DIR, '') || '/').replace(/\\/g, '/'),
+        // The path relative to rootDir. Ensure it starts with / and uses forward slashes
+        path: (fullPath.replace(rootDir, '') || '/').replace(/\\/g, '/'),
     };
 };
 
 export async function GET(req: Request) {
     try {
+        const ROOT_DIR = await getSetting('FILE_MANAGER_ROOT', path.resolve(process.cwd(), '..'));
         const { searchParams } = new URL(req.url);
         const folderPath = searchParams.get('path') || '/';
         const action = searchParams.get('action');
 
-        const targetPath = resolveSafePath(folderPath);
+        const targetPath = resolveSafePath(folderPath, ROOT_DIR);
 
         // Handle Download Action
         if (action === 'download') {
@@ -85,7 +82,7 @@ export async function GET(req: Request) {
             try {
                 const fullPath = path.join(targetPath, file);
                 const fileStats = await fs.stat(fullPath);
-                fileList.push(mapFileStats(file, fileStats, fullPath));
+                fileList.push(mapFileStats(file, fileStats, fullPath, ROOT_DIR));
             } catch (err) {
                 // Ignore files we don't have permission to stat
                 console.warn(`Could not stat file: ${file}`, err);
@@ -110,13 +107,14 @@ export async function GET(req: Request) {
 // Handle folder creation, renaming, and moving
 export async function POST(req: Request) {
     try {
+        const ROOT_DIR = await getSetting('FILE_MANAGER_ROOT', path.resolve(process.cwd(), '..'));
         const body = await req.json();
         const { action } = body;
 
         switch (action) {
             case 'createFolder': {
                 const { path: parentPath, name } = body;
-                const targetDir = resolveSafePath(parentPath);
+                const targetDir = resolveSafePath(parentPath, ROOT_DIR);
                 const newFolderPath = path.join(targetDir, name);
 
                 await fs.mkdir(newFolderPath, { recursive: true });
@@ -125,7 +123,7 @@ export async function POST(req: Request) {
 
             case 'rename': {
                 const { path: oldRelPath, newName } = body;
-                const oldPath = resolveSafePath(oldRelPath);
+                const oldPath = resolveSafePath(oldRelPath, ROOT_DIR);
                 const newPath = path.join(path.dirname(oldPath), newName);
 
                 // Ensure the new path is also safe (inside ROOT_DIR)
@@ -137,8 +135,8 @@ export async function POST(req: Request) {
 
             case 'move': {
                 const { sourcePath: srcRelPath, destinationPath: destRelPath } = body;
-                const srcPath = resolveSafePath(srcRelPath);
-                const destDir = resolveSafePath(destRelPath);
+                const srcPath = resolveSafePath(srcRelPath, ROOT_DIR);
+                const destDir = resolveSafePath(destRelPath, ROOT_DIR);
                 const destPath = path.join(destDir, path.basename(srcPath));
 
                 await fs.rename(srcPath, destPath);
@@ -147,8 +145,8 @@ export async function POST(req: Request) {
 
             case 'copy': {
                 const { sourcePath: srcRelPath, destinationPath: destRelPath } = body;
-                const srcPath = resolveSafePath(srcRelPath);
-                const destDir = resolveSafePath(destRelPath);
+                const srcPath = resolveSafePath(srcRelPath, ROOT_DIR);
+                const destDir = resolveSafePath(destRelPath, ROOT_DIR);
                 let destPath = path.join(destDir, path.basename(srcPath));
 
                 // Extremely basic copy (ideal production needs recursive copy for dirs)
@@ -175,6 +173,7 @@ export async function POST(req: Request) {
 // Handle file deletion
 export async function DELETE(req: Request) {
     try {
+        const ROOT_DIR = await getSetting('FILE_MANAGER_ROOT', path.resolve(process.cwd(), '..'));
         const { searchParams } = new URL(req.url);
         const targetRelPath = searchParams.get('path');
 
@@ -182,7 +181,7 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: 'Path parameter is required' }, { status: 400 });
         }
 
-        const targetPath = resolveSafePath(targetRelPath);
+        const targetPath = resolveSafePath(targetRelPath, ROOT_DIR);
 
         // Safety check: Do not allow deleting the root directory itself
         if (targetPath === ROOT_DIR) {

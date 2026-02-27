@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
-
-const BACKUP_DIR = path.join(process.cwd(), 'backups');
+import { getSetting } from '@/lib/db';
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ filename: string }> }
 ) {
     try {
+        const BACKUP_DIR = await getSetting('BACKUP_DIR', path.join(process.cwd(), 'backups'));
         const resolvedParams = await params;
         const filename = resolvedParams.filename;
 
@@ -39,6 +39,7 @@ export async function DELETE(
     { params }: { params: Promise<{ filename: string }> }
 ) {
     try {
+        const BACKUP_DIR = await getSetting('BACKUP_DIR', path.join(process.cwd(), 'backups'));
         const resolvedParams = await params;
         const filename = resolvedParams.filename;
 

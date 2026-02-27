@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { getSetting } from '@/lib/db';
 
-const ROOT_DIR = process.env.FILE_MANAGER_ROOT || path.resolve(process.cwd(), '..');
-
-const resolveSafePath = (userPath: string | null) => {
-    if (!userPath) return ROOT_DIR;
+const resolveSafePath = (userPath: string | null, rootDir: string) => {
+    if (!userPath) return rootDir;
     const normalizedPath = path.normalize(userPath).replace(/^(\.\.(\/|\\|$))+/, '');
-    const resolvedPath = path.join(ROOT_DIR, normalizedPath.replace(/^\//, ''));
-    if (!resolvedPath.startsWith(ROOT_DIR)) {
+    const resolvedPath = path.join(rootDir, normalizedPath.replace(/^\//, ''));
+    if (!resolvedPath.startsWith(rootDir)) {
         throw new Error('Access denied: Invalid path');
     }
     return resolvedPath;
@@ -16,6 +15,8 @@ const resolveSafePath = (userPath: string | null) => {
 
 export async function POST(req: Request) {
     try {
+        const ROOT_DIR = await getSetting('FILE_MANAGER_ROOT', path.resolve(process.cwd(), '..'));
+
         const formData = await req.formData();
         const files: File[] = [];
         let folderPath = '/';
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
         }
 
-        const targetDir = resolveSafePath(folderPath);
+        const targetDir = resolveSafePath(folderPath, ROOT_DIR);
 
         // Ensure the target directory exists before saving files
         await fs.mkdir(targetDir, { recursive: true });

@@ -4,19 +4,17 @@ import { exec } from 'child_process';
 import util from 'util';
 import path from 'path';
 import fs from 'fs';
+import { getSetting } from '@/lib/db';
 
 const execAsync = util.promisify(exec);
 
-// Path to store backups on the host machine
-const BACKUP_DIR = path.join(process.cwd(), 'backups');
-
-// Ensure backup directory exists
-if (!fs.existsSync(BACKUP_DIR)) {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
-}
-
 export async function POST(req: Request) {
     try {
+        const BACKUP_DIR = await getSetting('BACKUP_DIR', path.join(process.cwd(), 'backups'));
+        if (!fs.existsSync(BACKUP_DIR)) {
+            fs.mkdirSync(BACKUP_DIR, { recursive: true });
+        }
+
         const { type, containerName, volumeName } = await req.json();
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
@@ -140,6 +138,8 @@ export async function POST(req: Request) {
 export async function GET() {
     // List available backups
     try {
+        const BACKUP_DIR = await getSetting('BACKUP_DIR', path.join(process.cwd(), 'backups'));
+
         if (!fs.existsSync(BACKUP_DIR)) {
             return NextResponse.json({ backups: [] });
         }
