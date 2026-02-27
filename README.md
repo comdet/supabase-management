@@ -1,4 +1,4 @@
-# Supabase Manager (DMS Server Management) 🚀
+# Supabase Manager 🚀
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)
@@ -25,7 +25,7 @@ This project provides an all-in-one control center for your server.
 **⚙️ Automation & Backup**
 * **Cron Job Scheduler**: Easily schedule, edit, and monitor recurring automated tasks (like volume snapshot/database backups).
 * **Backup & Restore Hub**: Download `.tar.gz` backups locally or restore them with one click.
-* **Google Drive Sync**: Synchronize critical backups to Google Drive.
+
 
 ## 🛠 Tech Stack
 

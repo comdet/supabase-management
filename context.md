@@ -20,7 +20,7 @@ This project is a monolithic **Next.js 15 (App Router)** application that serves
 ## 📁 Directory Structure Breakdown
 
 ```text
-dms_server_management/
+supabase_manager/
 ├── server.js                # Custom Next.js Bootstrapper (Attaches Socket.IO to HTTP server)
 ├── package.json             # Core dependencies
 ├── management.db            # SQLite database file (auto-generated on spin-up)
@@ -28,15 +28,14 @@ dms_server_management/
 │   ├── lib/                 # Shared backend library helpers
 │   │   ├── auth.ts          # JWT, Session handling, hashed password logic (SHA-256)
 │   │   ├── db.ts            # SQLite client wrapper logic (`dbGet`, `dbRun`, `getSetting`, `setSetting`)
-│   │   ├── docker.ts        # dockerode instance initiator mapping to /var/run/docker.sock
-│   │   └── google-drive.ts  # Logic for syncing backups to Google Drive
+│   │   └── docker.ts        # dockerode instance initiator mapping to /var/run/docker.sock
 │   │
 │   ├── middleware.ts        # 🛡️ GLOBAL SECURITY: JWT & API Key Validator protecting /api and /dashboard routes
 │   │
 │   ├── app/
 │   │   ├── api/             # 🟢 BACKEND: Node.js API Endpoints (Middleware protected)
 │   │   │   ├── auth/        # Login/Logout controller. Checks SQLite credentials.
-│   │   │   ├── backup/      # Scripts to execute pg_dump locally, tar zip volumes, and sync logic
+│   │   │   ├── backup/      # Scripts to execute pg_dump locally and tar zip volumes
 │   │   │   ├── docker/      # Interacts with local Docker Daemon (Container lists, Logs, Volumes parsing)
 │   │   │   ├── files/       # Host OS File Manager API (CRUD file ops securely mapping to a ROOT path)
 │   │   │   ├── network/     # Port scanning utilizing `ss -tuln` output.
@@ -93,6 +92,6 @@ Settings changed on the frontend (like the password or file manager roots) might
 ---
 
 ## 🧭 Roadmap / Known Missing Pieces (TODO)
-- **Settings Page Enhancements**: Ability to modify the Google Drive integration JSON token from UI directly.
+
 - **Role Based Access Control (RBAC)**: Currently, only a single "Admin" tier exists via `id=1`. There is no concept of viewers vs. editors.
 - **Localization (i18n)**: Expanding structural hooks for multiple language supports like Thai, Spanish, etc.
