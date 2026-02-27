@@ -53,35 +53,19 @@ export async function POST(req: NextRequest) {
             const sitesAvailablePath = `/etc/nginx/sites-available/${project_name}.conf`;
             const sitesEnabledPath = `/etc/nginx/sites-enabled/${project_name}.conf`;
 
-            try {
-                // Moving file to NGINX directories requires SUDO. We hope sudoers is configured.
-                await execAsync(`sudo mv ${tmpConfigPath} ${sitesAvailablePath}`);
+            // Return the manual instructions for the frontend instead of running sudo commands directly
+            return NextResponse.json({
+                message: 'NGINX configuration generated to /tmp.',
+                tmpPath: tmpConfigPath,
+                domain: domain_name,
+                commands: [
+                    `sudo mv ${tmpConfigPath} ${sitesAvailablePath}`,
+                    `sudo ln -s ${sitesAvailablePath} ${sitesEnabledPath}`,
+                    `sudo nginx -t`,
+                    `sudo systemctl reload nginx`
+                ]
+            });
 
-                // Create symbolic link if not exists
-                const checkLinkCmd = `if [ ! -L ${sitesEnabledPath} ]; then sudo ln -s ${sitesAvailablePath} ${sitesEnabledPath}; fi`;
-                await execAsync(checkLinkCmd);
-
-                // Test configuration
-                await execAsync(`sudo nginx -t`);
-
-                // Reload NGINX
-                await execAsync(`sudo systemctl reload nginx`);
-
-                return NextResponse.json({ message: 'NGINX configuration generated and reloaded successfully' });
-
-            } catch (nginxError: any) {
-                console.error("NGINX Error:", nginxError.message);
-
-                // Rollback or notify failure
-                const isSudoIssue = nginxError.message.includes('sudo: a password is required');
-                let errMessage = 'Failed to configure NGINX. ' + nginxError.message;
-
-                if (isSudoIssue) {
-                    errMessage = 'Permission Denied: Please add "dmsuser ALL=(ALL) NOPASSWD: /usr/bin/mv, /usr/bin/ln, /usr/sbin/nginx, /bin/systemctl" to your /etc/sudoers file.';
-                }
-
-                return NextResponse.json({ error: errMessage }, { status: 500 });
-            }
         }
 
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

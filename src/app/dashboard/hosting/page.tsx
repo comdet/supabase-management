@@ -22,6 +22,8 @@ export default function HostingPage() {
     const [nginxStatus, setNginxStatus] = useState<string>('checking...');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeployModal, setShowDeployModal] = useState(false);
+    const [showCommandsModal, setShowCommandsModal] = useState(false);
+    const [deployCommands, setDeployCommands] = useState<string[]>([]);
 
     // Create Form State
     const [newProject, setNewProject] = useState({
@@ -169,7 +171,13 @@ export default function HostingPage() {
             const nginxData = await nginxRes.json();
             if (!nginxRes.ok) throw new Error(nginxData.error);
 
-            alert('Deployment successful!');
+            if (nginxData.commands) {
+                setDeployCommands(nginxData.commands);
+                setShowCommandsModal(true);
+            } else {
+                alert('Deployment successful!');
+            }
+
             setShowDeployModal(false);
             fetchProjects();
 
@@ -336,6 +344,34 @@ export default function HostingPage() {
                         </CardContent>
                         <div className="p-6 pt-0 mt-auto border-t border-border bg-card flex justify-end">
                             <Button variant="outline" disabled={deploying} onClick={() => setShowDeployModal(false)}>Close</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Commands Modal */}
+            {showCommandsModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border-primary/50">
+                        <CardHeader>
+                            <CardTitle className="text-emerald-500 flex items-center gap-2">
+                                <AlertCircle className="w-6 h-6" /> Deployment Extracted Successfully!
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                The source code has been downloaded and extracted to the target directory.
+                                NGINX configuration has been generated safely in <code className="bg-neutral-800 px-1 py-0.5 rounded">/tmp/</code>.
+                                <br /><br />To activate this site, please run the following commands manually with root privileges (sudo):
+                            </p>
+                        </CardHeader>
+                        <CardContent className="flex-1 overflow-y-auto">
+                            <div className="bg-black border border-neutral-800 p-4 rounded-xl font-mono text-sm text-blue-400 whitespace-pre overflow-x-auto">
+                                {deployCommands.map((cmd, i) => (
+                                    <div key={i} className="mb-2 hover:bg-white/5 px-2 rounded -mx-2 py-1 transition-colors">$ {cmd}</div>
+                                ))}
+                            </div>
+                        </CardContent>
+                        <div className="p-6 pt-0 mt-auto border-t border-border bg-card flex justify-end">
+                            <Button onClick={() => setShowCommandsModal(false)}>Understood</Button>
                         </div>
                     </Card>
                 </div>

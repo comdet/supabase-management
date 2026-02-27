@@ -78,7 +78,7 @@ The security of this application centers around preventing unauthorized access t
 ### 1. Web Hosting & NGINX Automator (The Self-Hosted Vercel equivalent)
 - **Database**: Tracks project names, domains, and GitHub repository links in SQLite.
 - **Deploy Trigger**: `/api/hosting/deploy` connects to GitHub's raw API (with Optional Auth for Private Repos), downloads `.tar.gz` payload of a tagged release, extracts it natively using `tar --strip-components=1`, and plops it directly into the mapped destination web folder root.
-- **NGINX Symlink Generator**: Creates standard Site configurations into `/etc/nginx/sites-available` and symlinks identically to `-enabled`. Safely issues a reload command utilizing host-level `sudo` (configured under `visudo`).
+- **NGINX Symlink Generator**: Creates standard Site configurations and saves them temporarily to `/tmp/project.conf`. For strict security, the Host OS does NOT execute `sudo mv` autonomously anymore. Instead, it returns the generated commands arrays back to the Next.js Frontend UI (`/dashboard/hosting`), instructing the user to paste them in the terminal manually.
 
 ### 2. Auto-Update via GitHub CI/CD Pipeline
 - **Continuous Integration**: When a developer tags a commit on GitHub, `release.yml` naturally creates an application bundle `build.tar.gz`.

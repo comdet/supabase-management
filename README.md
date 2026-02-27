@@ -85,21 +85,8 @@ npm start
 The dashboard will be accessible at `http://localhost:3000`.
 
 ### 6. Auto Web Hosting Setup (Optional)
-If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you need to grant the user running this application permission to manage NGINX without a password prompt.
-
-1. Ensure NGINX is installed on your server: `sudo apt install nginx`
-2. Open the sudoers file safely: `sudo visudo`
-3. Add the following line at the end of the file (replace `your_username` with the user running this app via PM2, e.g., `ubuntu`):
-   ```bash
-   ```bash
-   your_username ALL=(ALL) NOPASSWD: /usr/bin/mv, /usr/bin/ln, /usr/sbin/nginx, /bin/systemctl
-   ```
-This grants the application permission to move config files, create symlinks, test NGINX configuration, and reload the NGINX service autonomously when deploying a new website.
-
-> ⚠️ **Security Note regarding `NOPASSWD`**: 
-> While binding explicit absolute paths (like `/usr/bin/mv`) is safer than granting blanket `NOPASSWD: ALL`, there is still an inherent risk. If an attacker gains shell access as `your_username`, they might theoretically abuse `/usr/bin/mv` to overwrite critical system binaries or `/bin/systemctl` to manipulate other services. 
-> 
-> **Mitigation:** Ensure your dashboard is strictly authenticated. For enterprise-grade security, you should configure NGINX inside an isolated Docker container or map an alternate unprivileged folder to serve sites rather than touching the host's `/etc/nginx` outright.
+If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you no longer need to grant dangerous `sudoers` privileges.
+For maximum security, the system will download and extract the repository code into your specified root directory. It will then generate an NGINX `.conf` file in `/tmp/` and display a UI Modal containing the exact safe CLI commands you must run manually as `sudo` to enable the site.
 
 ---
 
