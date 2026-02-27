@@ -82,9 +82,44 @@ npm start
 # Alternatively, run via PM2 for background process:
 # pm2 start npm --name "supabase-manager" -- start
 ```
-The dashboard will be accessible at `http://localhost:3000`.
+The dashboard will be accessible locally at `http://localhost:3000`.
 
-### 6. Auto Web Hosting Setup (Optional)
+---
+
+### 🚦 6. Exposing the Manager (Deployment Options)
+For security, the manager runs on port `3000` locally. If your server is behind a strict firewall (like a university or corporate network) or you want to access it securely from the outside, you have **3 recommended options**:
+
+**Option A: NGINX Reverse Proxy (Recommended for Public Domains)**
+If you own a domain and can configure DNS:
+1. Setup a domain (e.g., `manager.yourdomain.com`).
+2. Create an NGINX config handling SSL (Let's Encrypt).
+3. Proxy traffic to the internal app:
+   ```nginx
+   server {
+       listen 443 ssl;
+       server_name manager.yourdomain.com;
+       # ... SSL certificates ...
+       location / {
+           proxy_pass http://localhost:3000;
+       }
+   }
+   ```
+
+**Option B: Cloudflare Tunnels (Best for Bypassing Firewalls)**
+If your host is behind a strict NAT/Firewall (e.g., University IP `10.150.x.x`) and you cannot port-forward:
+1. Install `cloudflared` on your server.
+2. Authenticate and route traffic securely to `http://localhost:3000` via the Cloudflare Zero Trust Dashboard.
+3. You get a public domain with HTTPS without touching NGINX.
+
+**Option C: SSH Tunneling (Maximum Security / Private Access)**
+If you don't need a domain and just want to access the manager temporarily from your personal computer:
+1. Run this on your personal laptop/PC:
+   `ssh -L 3000:localhost:3000 dmsuser@your_server_ip`
+2. Open your browser and go to `http://localhost:3000`. The traffic is encrypted through the SSH tunnel directly to the server.
+
+---
+
+### 🌐 7. Auto Web Hosting Feature (Optional)
 If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you no longer need to grant dangerous `sudoers` privileges.
 For maximum security, the system will download and extract the repository code into your specified root directory. It will then generate an NGINX `.conf` file in `/tmp/` and display a UI Modal containing the exact safe CLI commands you must run manually as `sudo` to enable the site.
 
