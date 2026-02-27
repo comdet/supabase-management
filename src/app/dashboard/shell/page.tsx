@@ -50,7 +50,7 @@ export default function TerminalPage() {
         fitAddonRef.current = fitAddon;
 
         // Give a little welcome message
-        term.writeln('\\x1b[35m[DMS Web Terminal]\\x1b[0m Establishing secure connection to Host OS...');
+        term.writeln('\x1b[35m[Supabase Web Terminal]\x1b[0m Establishing secure connection to Host OS...');
 
         // 2. Initialize Socket.IO connection
         // Assuming current domain. In Dev it goes to localhost:3000 where our custom server.js listens

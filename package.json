@@ -1,5 +1,5 @@
 {
-  "name": "dms_server_management",
+  "name": "supabase-manager",
   "version": "0.1.0",
   "private": true,
   "scripts": {
