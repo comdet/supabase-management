@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["dockerode", "ssh2", "sqlite3"],
 };
 
 export default nextConfig;
