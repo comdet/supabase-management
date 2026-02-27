@@ -86,6 +86,7 @@ The security of this application centers around preventing unauthorized access t
 
 ### 3. Docker Module (`dockerode`) & Volume Control
 Located in `/api/docker`. Relies strictly on the UNIX socket `/var/run/docker.sock` to interface with the host daemon. It bypasses bash CLI entirely to provide real JSON responses for Container lifecycle states, memory usage, and precise Volumes mapping.
+- **Container Inspector**: Exposes `container.inspect()` natively to allow fetching Environment Variables, Network configurations, and mapped Bind Mounts accurately mapping into the Frontend UI without manual bash querying.
 
 ### 4. Web Terminal Module (`node-pty` + `socket.io` + `xterm.js`)
 - **Backend Component**: `server.js` overrides Next's native server initiation, instantiating `Socket.IO`. It spawns a raw bash binary locally via the `node-pty` native extension (pseudo-terminal). This ties the bash's raw output strictly to the websocket room.

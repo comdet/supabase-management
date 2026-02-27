@@ -30,3 +30,19 @@ export async function POST(
         return NextResponse.json({ error: error.message || 'Failed to perform action' }, { status: 500 });
     }
 }
+
+export async function GET(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const resolvedParams = await params;
+        const container = docker.getContainer(resolvedParams.id);
+        const info = await container.inspect();
+
+        return NextResponse.json({ info });
+    } catch (error: any) {
+        console.error(`Error inspecting container:`, error);
+        return NextResponse.json({ error: error.message || 'Failed to inspect container' }, { status: 500 });
+    }
+}

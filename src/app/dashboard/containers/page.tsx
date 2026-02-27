@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Square, RotateCw, ServerCrash, CheckCircle2, Clock, Terminal } from 'lucide-react';
+import { Play, Square, RotateCw, ServerCrash, CheckCircle2, Clock, Terminal, Info, X } from 'lucide-react';
 
 type Container = {
     id: string;
@@ -16,6 +16,9 @@ export default function ContainersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [inspectData, setInspectData] = useState<any>(null);
+    const [showInspectModal, setShowInspectModal] = useState(false);
+    const [inspectLoading, setInspectLoading] = useState(false);
 
     const fetchContainers = async () => {
         try {
@@ -54,6 +57,23 @@ export default function ContainersPage() {
             alert(err.message);
         } finally {
             setActionLoading(null);
+        }
+    };
+
+    const handleInspect = async (id: string) => {
+        setInspectLoading(true);
+        setShowInspectModal(true);
+        setInspectData(null);
+        try {
+            const res = await fetch(`/api/docker/containers/${id}`);
+            if (!res.ok) throw new Error('Failed to fetch container details');
+            const data = await res.json();
+            setInspectData(data.info);
+        } catch (err: any) {
+            alert(err.message);
+            setShowInspectModal(false);
+        } finally {
+            setInspectLoading(false);
         }
     };
 
@@ -100,6 +120,13 @@ export default function ContainersPage() {
                                 <td className="p-4 text-sm text-neutral-400">{c.status}</td>
                                 <td className="p-4 text-right">
                                     <div className="flex justify-end gap-2 items-center">
+                                        <button
+                                            onClick={() => handleInspect(c.id)}
+                                            className="p-1.5 text-blue-400 hover:text-white hover:bg-neutral-800 rounded-md transition-colors"
+                                            title="Inspect Info"
+                                        >
+                                            <Info className="w-4 h-4" />
+                                        </button>
                                         <button
                                             onClick={() => window.location.href = `/dashboard/containers/${c.id}/logs`}
                                             className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-md transition-colors"
@@ -151,6 +178,73 @@ export default function ContainersPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Inspect Modal */}
+            {showInspectModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl">
+                        <div className="flex justify-between items-center p-4 border-b border-neutral-800">
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Info className="w-5 h-5 text-blue-500" /> Container Inspect
+                            </h2>
+                            <button onClick={() => setShowInspectModal(false)} className="text-neutral-500 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 text-sm text-neutral-300">
+                            {inspectLoading ? (
+                                <div className="flex items-center justify-center h-32 gap-3 text-neutral-400">
+                                    <Clock className="w-5 h-5 animate-spin" /> Fetching config...
+                                </div>
+                            ) : inspectData ? (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-white font-semibold mb-2 border-b border-neutral-800 pb-1">General Info</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-neutral-950 p-4 rounded-lg border border-neutral-800/50">
+                                            <div><span className="text-neutral-500">Name:</span> {inspectData.Name}</div>
+                                            <div><span className="text-neutral-500">ID:</span> <span className="text-xs">{inspectData.Id}</span></div>
+                                            <div><span className="text-neutral-500">Image:</span> {inspectData.Config?.Image}</div>
+                                            <div><span className="text-neutral-500">Created:</span> {new Date(inspectData.Created).toLocaleString()}</div>
+                                            <div><span className="text-neutral-500">Restart Policy:</span> {inspectData.HostConfig?.RestartPolicy?.Name || 'none'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-white font-semibold mb-2 border-b border-neutral-800 pb-1">Environment Variables</h3>
+                                        <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800/50 font-mono text-xs overflow-x-auto whitespace-pre">
+                                            {inspectData.Config?.Env?.map((env: string, i: number) => (
+                                                <div key={i} className="py-0.5"><span className="text-blue-400">{env.split('=')[0]}</span>={<span className="text-emerald-400">{env.split('=').slice(1).join('=')}</span>}</div>
+                                            )) || 'No environment variables'}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-white font-semibold mb-2 border-b border-neutral-800 pb-1">Mounts / Volumes</h3>
+                                        <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800/50 space-y-2">
+                                            {inspectData.Mounts?.map((m: any, i: number) => (
+                                                <div key={i} className="text-xs break-all">
+                                                    <span className="text-purple-400 font-semibold">{m.Type.toUpperCase()}</span>: {m.Source} <span className="text-neutral-500">→</span> {m.Destination}
+                                                </div>
+                                            )) || 'No mounts'}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-white font-semibold mb-2 border-b border-neutral-800 pb-1">Network & Ports</h3>
+                                        <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800/50 text-xs space-y-2">
+                                            {inspectData.NetworkSettings?.Ports && Object.entries(inspectData.NetworkSettings.Ports).map(([port, bindings]: any, i) => (
+                                                <div key={i}>
+                                                    <span className="text-amber-400">{port}</span> <span className="text-neutral-500">→</span> {bindings ? bindings.map((b: any) => `${b.HostIp}:${b.HostPort}`).join(', ') : 'Exposed only'}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

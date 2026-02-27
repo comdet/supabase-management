@@ -15,10 +15,12 @@ This project provides an all-in-one control center for your server.
 
 **🐳 Docker Management**
 * **Container Dashboard**: Start, stop, restart, and monitor real-time resource usage of Docker containers.
+* **Container Inspector**: View deep underlying configurations, precise Environment Variables, volume Mounts, and Network hooks via `container.inspect()`.
 * **Live Logs Output**: Stream real-time logs from any Docker container directly in the browser.
 * **Volume Manager**: View, backup, and restore Docker volumes intuitively.
 
 **💽 System & OS Operations**
+* **Auto Web Hosting**: Seamlessly pull `.tar.gz` releases from your GitHub Repositories (Public/Private via PAT) and magically compile NGINX `.conf` server blocks binding your domain natively.
 * **Web-Based Terminal Server**: Access a fully-featured shell environment right from your browser (powered by `node-pty` and `xterm.js`).
 * **File Manager**: Explore, upload, download, move, copy, and delete system files via a Finder-like GUI.
 * **Resource Monitor**: Beautiful Recharts-powered dial gauges displaying Live CPU, RAM, and Disk space usage.
@@ -27,6 +29,7 @@ This project provides an all-in-one control center for your server.
 **⚙️ Automation & Backup**
 * **Cron Job Scheduler**: Easily schedule, edit, and monitor recurring automated tasks (like volume snapshot/database backups).
 * **Backup & Restore Hub**: Download `.tar.gz` backups locally or restore them with one click.
+* **Auto Updater Pipeline**: Integrated CI/CD triggers allowing the application to self-update by pulling its own GitHub releases and reloading PM2.
 
 
 ## 🛠 Tech Stack
@@ -88,9 +91,15 @@ If you want to use the **Auto Web Hosting** feature (deploying sites directly fr
 2. Open the sudoers file safely: `sudo visudo`
 3. Add the following line at the end of the file (replace `your_username` with the user running this app via PM2, e.g., `ubuntu`):
    ```bash
+   ```bash
    your_username ALL=(ALL) NOPASSWD: /usr/bin/mv, /usr/bin/ln, /usr/sbin/nginx, /bin/systemctl
    ```
 This grants the application permission to move config files, create symlinks, test NGINX configuration, and reload the NGINX service autonomously when deploying a new website.
+
+> ⚠️ **Security Note regarding `NOPASSWD`**: 
+> While binding explicit absolute paths (like `/usr/bin/mv`) is safer than granting blanket `NOPASSWD: ALL`, there is still an inherent risk. If an attacker gains shell access as `your_username`, they might theoretically abuse `/usr/bin/mv` to overwrite critical system binaries or `/bin/systemctl` to manipulate other services. 
+> 
+> **Mitigation:** Ensure your dashboard is strictly authenticated. For enterprise-grade security, you should configure NGINX inside an isolated Docker container or map an alternate unprivileged folder to serve sites rather than touching the host's `/etc/nginx` outright.
 
 ---
 
