@@ -41,6 +41,25 @@ export const db = new sqlite3.Database(dbPath, (err) => {
                 db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('FILE_MANAGER_ROOT', '/')`);
             }
         });
+
+        // Create hosting_projects table for Auto Web Hosting feature (Phase 21)
+        db.run(`
+      CREATE TABLE IF NOT EXISTS hosting_projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_name TEXT UNIQUE NOT NULL,
+        github_repo TEXT NOT NULL,
+        pat_token TEXT,
+        domain_name TEXT NOT NULL,
+        deploy_path TEXT NOT NULL,
+        current_version TEXT DEFAULT 'Not Deployed',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+            if (err) {
+                console.error('Error creating hosting_projects table', err.message);
+            }
+        });
     }
 });
 

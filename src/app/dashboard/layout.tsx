@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload } from 'lucide-react';
+import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -32,6 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {
             title: 'System & Security',
             items: [
+                { name: 'Auto Web Hosting', href: '/dashboard/hosting', icon: Globe },
                 { name: 'File Manager', href: '/dashboard/files', icon: FolderHeart },
                 { name: 'Terminal Server', href: '/dashboard/shell', icon: TerminalSquare },
                 { name: 'Network Monitor', href: '/dashboard/network', icon: ShieldCheck },
