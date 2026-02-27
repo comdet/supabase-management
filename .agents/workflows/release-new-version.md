@@ -15,8 +15,9 @@ When the user triggers this workflow (e.g., via `/release-new-version`), you MUS
    - Synthesize these logs into a clean, user-friendly **Changelog** (in Markdown format). 
    - Group the changes into categories like `✨ Features`, `🐛 Bug Fixes`, `🔒 Security`, etc.
 
-3. **Update `package.json`**:
+3. **Update Version Numbers**:
    - Update the `"version"` field in `package.json` to the new version number.
+   - Update the version badge in `README.md` (e.g., from `version-1.0.0-orange.svg` to the new version).
 
 4. **Verify Build**:
    - Run `npm run build` to ensure the application builds successfully without completely breaking.
