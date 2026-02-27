@@ -22,6 +22,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ]
         },
         {
+            title: 'Hosting & Projects',
+            items: [
+                { name: 'Auto Web Hosting', href: '/dashboard/hosting', icon: Globe },
+                { name: 'File Manager', href: '/dashboard/files', icon: FolderHeart },
+            ]
+        },
+        {
             title: 'Docker Management',
             items: [
                 { name: 'Containers', href: '/dashboard/containers', icon: Server },
@@ -30,21 +37,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ]
         },
         {
-            title: 'System & Security',
+            title: 'System Operations',
             items: [
-                { name: 'Auto Web Hosting', href: '/dashboard/hosting', icon: Globe },
-                { name: 'File Manager', href: '/dashboard/files', icon: FolderHeart },
                 { name: 'Terminal Server', href: '/dashboard/shell', icon: TerminalSquare },
                 { name: 'Network Monitor', href: '/dashboard/network', icon: ShieldCheck },
                 { name: 'PM2 Monitor', href: '/dashboard/pm2', icon: Activity },
-                { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-                { name: 'Software Update', href: '/dashboard/update', icon: CloudDownload },
+                { name: 'Cron Jobs', href: '/dashboard/cron', icon: Clock },
             ]
         },
         {
-            title: 'Automation',
+            title: 'Configuration',
             items: [
-                { name: 'Cron Jobs', href: '/dashboard/cron', icon: Clock },
+                { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+                { name: 'Software Update', href: '/dashboard/update', icon: CloudDownload },
             ]
         }
     ];
