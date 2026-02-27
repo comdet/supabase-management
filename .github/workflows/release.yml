@@ -1,0 +1,52 @@
+name: Build and Release Next.js App
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0, v2.1.3
+
+jobs:
+  build:
+    name: Build & Package Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # LTS version recommended
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Prepare Release Package
+        run: |
+          # Create a clean release directory
+          mkdir release_package
+          
+          # Copy essential files for production runtime
+          cp -r .next release_package/.next
+          cp -r public release_package/public
+          cp -r src release_package/src
+          cp package.json release_package/
+          cp package-lock.json release_package/
+          cp server.js release_package/
+          cp next.config.ts release_package/
+          
+          # Compress to a single tarball
+          tar -czf supabase-manager-release.tar.gz -C release_package .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: supabase-manager-release.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

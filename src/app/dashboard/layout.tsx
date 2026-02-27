@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -37,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { name: 'Network Monitor', href: '/dashboard/network', icon: ShieldCheck },
                 { name: 'PM2 Monitor', href: '/dashboard/pm2', icon: Activity },
                 { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+                { name: 'Software Update', href: '/dashboard/update', icon: CloudDownload },
             ]
         },
         {
