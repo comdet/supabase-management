@@ -79,6 +79,17 @@ npm start
 ```
 The dashboard will be accessible at `http://localhost:3000`.
 
+### 6. Auto Web Hosting Setup (Optional)
+If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you need to grant the user running this application permission to manage NGINX without a password prompt.
+
+1. Ensure NGINX is installed on your server: `sudo apt install nginx`
+2. Open the sudoers file safely: `sudo visudo`
+3. Add the following line at the end of the file (replace `your_username` with the user running this app via PM2, e.g., `ubuntu`):
+   ```bash
+   your_username ALL=(ALL) NOPASSWD: /usr/bin/mv, /usr/bin/ln, /usr/sbin/nginx, /bin/systemctl
+   ```
+This grants the application permission to move config files, create symlinks, test NGINX configuration, and reload the NGINX service autonomously when deploying a new website.
+
 ---
 
 ## 🔒 Security Warning
