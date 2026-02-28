@@ -10,11 +10,17 @@ export async function GET(req: Request) {
 
         const backupDir = await getSetting('BACKUP_DIR', '');
         const fileManagerRoot = await getSetting('FILE_MANAGER_ROOT', '/');
+        const supabaseProjectPath = await getSetting('SUPABASE_PROJECT_PATH', '');
+        const supabaseFunctionsRepo = await getSetting('SUPABASE_FUNCTIONS_REPO', '');
+        const supabaseFunctionsPat = await getSetting('SUPABASE_FUNCTIONS_PAT', '');
 
         const safeConfig = {
             ADMIN_USERNAME: adminUsername,
             BACKUP_DIR: backupDir,
             FILE_MANAGER_ROOT: fileManagerRoot,
+            SUPABASE_PROJECT_PATH: supabaseProjectPath,
+            SUPABASE_FUNCTIONS_REPO: supabaseFunctionsRepo,
+            SUPABASE_FUNCTIONS_PAT: supabaseFunctionsPat,
         };
 
         return NextResponse.json(safeConfig);
@@ -27,7 +33,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { currentPassword, newUsername, newPassword, backupDir, fileManagerRoot } = body;
+        const { currentPassword, newUsername, newPassword, backupDir, fileManagerRoot, supabaseProjectPath, supabaseFunctionsRepo, supabaseFunctionsPat } = body;
 
         let credentialsChanged = false;
 
@@ -52,6 +58,9 @@ export async function POST(req: Request) {
 
         if (backupDir !== undefined) await setSetting('BACKUP_DIR', backupDir);
         if (fileManagerRoot !== undefined) await setSetting('FILE_MANAGER_ROOT', fileManagerRoot);
+        if (supabaseProjectPath !== undefined) await setSetting('SUPABASE_PROJECT_PATH', supabaseProjectPath);
+        if (supabaseFunctionsRepo !== undefined) await setSetting('SUPABASE_FUNCTIONS_REPO', supabaseFunctionsRepo);
+        if (supabaseFunctionsPat !== undefined) await setSetting('SUPABASE_FUNCTIONS_PAT', supabaseFunctionsPat);
 
         return NextResponse.json({
             success: true,

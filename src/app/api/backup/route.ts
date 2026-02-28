@@ -81,12 +81,18 @@ export async function POST(req: Request) {
                 });
             });
 
+            let decodedVolumeName = volumeName;
+            if (decodedVolumeName.startsWith('bind-')) {
+                const hexPart = decodedVolumeName.substring(5);
+                decodedVolumeName = Buffer.from(hexPart, 'hex').toString('utf-8');
+            }
+
             // Use an alpine container to tar the volume and stream it
             const container = await docker.createContainer({
                 Image: 'alpine',
                 Cmd: ['tar', '-czf', '-', '-C', '/vol', '.'],
                 HostConfig: {
-                    Binds: [`${volumeName}:/vol:ro`]
+                    Binds: [`${decodedVolumeName}:/vol:ro`]
                 }
             });
 

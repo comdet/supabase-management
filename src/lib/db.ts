@@ -25,7 +25,6 @@ export const db = new sqlite3.Database(dbPath, (err) => {
             }
         });
 
-        // Create settings table if not exists
         db.run(`
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
@@ -39,6 +38,9 @@ export const db = new sqlite3.Database(dbPath, (err) => {
                 // Pre-seed default settings
                 db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('BACKUP_DIR', '/tmp/backups')`);
                 db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('FILE_MANAGER_ROOT', '/')`);
+                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('SUPABASE_PROJECT_PATH', '/home/user/supabase-project')`);
+                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('SUPABASE_FUNCTIONS_REPO', '')`);
+                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('SUPABASE_FUNCTIONS_PAT', '')`);
             }
         });
 

@@ -5,9 +5,11 @@ import { HardDrive, RefreshCw, ServerCrash, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
 type Volume = {
+    Id: string;
     Name: string;
     Driver: string;
     Mountpoint: string;
+    Type: string;
     CreatedAt?: string;
 };
 
@@ -67,15 +69,18 @@ export default function VolumesPage() {
                     </thead>
                     <tbody className="divide-y divide-neutral-800">
                         {volumes.map((v) => (
-                            <tr key={v.Name} className="hover:bg-neutral-800/50 transition-colors">
+                            <tr key={v.Id || v.Name} className="hover:bg-neutral-800/50 transition-colors">
                                 <td className="p-4">
-                                    <div className="font-medium text-neutral-200">{v.Name}</div>
+                                    <div className="font-medium text-neutral-200">
+                                        {v.Type === 'bind' ? <span className="text-xs bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded mr-2 uppercase">Bind Mount</span> : null}
+                                        {v.Name}
+                                    </div>
                                 </td>
                                 <td className="p-4 text-sm text-neutral-400">{v.Driver}</td>
                                 <td className="p-4 text-xs text-neutral-500 truncate max-w-xs">{v.Mountpoint}</td>
                                 <td className="p-4 text-right">
                                     <Link
-                                        href={`/dashboard/volumes/${v.Name}`}
+                                        href={`/dashboard/volumes/${v.Id || v.Name}`}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600/10 text-blue-500 hover:bg-blue-600/20 rounded-md transition-colors"
                                     >
                                         <FolderOpen className="w-4 h-4" /> Browse

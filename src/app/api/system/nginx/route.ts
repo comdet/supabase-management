@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
             const { project_name, domain_name, deploy_path } = project;
             const absolutePath = path.isAbsolute(deploy_path) ? deploy_path : path.join(process.cwd(), '..', deploy_path);
 
-            // NGINX Template for a basic static or SPA site
+            // NGINX Template for SPA (Vue/React) + Supabase Proxy
             const nginxConfig = `server {
     listen 80;
     server_name ${domain_name};
@@ -41,9 +41,14 @@ export async function POST(req: NextRequest) {
     access_log /var/log/nginx/${project_name}_access.log;
     error_log /var/log/nginx/${project_name}_error.log;
 
+    # 1. Frontend SPA Routing (Vue/React/Angular)
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ /index.html;
     }
+
+    # 2. Global Supabase API Proxy
+    # Include the master configuration snippet for /rest, /auth, etc.
+    include snippets/supabase-proxy.conf;
 }
 `;
             // Write config to temporary location first because NextJS doesn't have sudo

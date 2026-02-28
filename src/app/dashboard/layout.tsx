@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload, Globe } from 'lucide-react';
+import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload, Globe, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -26,6 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             items: [
                 { name: 'Auto Web Hosting', href: '/dashboard/hosting', icon: Globe },
                 { name: 'File Manager', href: '/dashboard/files', icon: FolderHeart },
+                { name: 'Supabase Main', href: '/dashboard/supabase', icon: Database },
+                { name: 'Edge Functions', href: '/dashboard/supabase/functions', icon: Zap },
+                { name: 'Database Tools', href: '/dashboard/database', icon: HardDrive },
             ]
         },
         {
@@ -73,7 +76,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 )}
                                 <div className="space-y-1 w-full">
                                     {group.items.map((item) => {
-                                        const isActive = pathname === item.href || (pathname.startsWith(item.href + '/') && item.href !== '/dashboard');
+                                        const isExact = item.href === '/dashboard' || item.href === '/dashboard/supabase';
+                                        const isActive = isExact
+                                            ? pathname === item.href
+                                            : pathname === item.href || pathname.startsWith(item.href + '/');
                                         return (
                                             <Link
                                                 key={item.href}

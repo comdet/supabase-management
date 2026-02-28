@@ -1,7 +1,7 @@
 # Supabase Manager 🚀
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.1.5-orange.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-orange.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15.0.0-black?logo=next.js)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-38B2AC?logo=tailwind-css)
 
@@ -20,11 +20,16 @@ This project provides an all-in-one control center for your server.
 * **Volume Manager**: View, backup, and restore Docker volumes intuitively.
 
 **💽 System & OS Operations**
-* **Auto Web Hosting**: Seamlessly pull `.tar.gz` releases from your GitHub Repositories (Public/Private via PAT) and magically compile NGINX `.conf` server blocks binding your domain natively.
+* **Auto Web Hosting**: Seamlessly pull `.tar.gz` releases from your GitHub Repositories (Public/Private via PAT) and magically compile NGINX `.conf` server blocks binding your domain natively, now with global reverse proxy snippet support for API routing!
 * **Web-Based Terminal Server**: Access a fully-featured shell environment right from your browser (powered by `node-pty` and `xterm.js`).
 * **File Manager**: Explore, upload, download, move, copy, and delete system files via a Finder-like GUI.
 * **Resource Monitor**: Beautiful Recharts-powered dial gauges displaying Live CPU, RAM, and Disk space usage.
 * **Network & PM2 Monitor**: Track open network ports and PM2 node processes.
+
+**⚡ Supabase Management**
+* **Container & Image Updater**: Start, stop, and smoothly pull the latest Studio images without entering the CLI.
+* **Edge Functions Deployer**: Native integration to pull compiled `functions.zip` releases directly from private GitHub repositories using PAT, extract into bind mounted Docker volumes, and automatically restart the edge-runtime.
+* **Config Editor**: Safely modify the database's underlying `.env` secrets via the browser window equipped with Monaco Editor.
 
 **⚙️ Automation & Backup**
 * **Cron Job Scheduler**: Easily schedule, edit, and monitor recurring automated tasks (like volume snapshot/database backups).
@@ -122,6 +127,74 @@ If you don't need a domain and just want to access the manager temporarily from 
 ### 🌐 7. Auto Web Hosting Feature (Optional)
 If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you no longer need to grant dangerous `sudoers` privileges.
 For maximum security, the system will download and extract the repository code into your specified root directory. It will then generate an NGINX `.conf` file in `/tmp/` and display a UI Modal containing the exact safe CLI commands you must run manually as `sudo` to enable the site.
+
+---
+
+### ⚡ 8. Edge Functions Deployment Guide
+To utilize the **Edge Functions Deployer**, your GitHub repository must be configured to compile and attach your Supabase functions as a `.zip` artifact directly into GitHub Releases.
+
+**Example GitHub Actions Workflow (`.github/workflows/release_functions.yml`):**
+```yaml
+name: Release Edge Functions
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Triggers when a new version tag is pushed
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Zip Functions
+        run: |
+          cd supabase/functions
+          zip -r ../../functions.zip ./*
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: functions.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+**Setup in Dashboard:**
+1. Navigate to **System Settings**.
+2. Enter your `SUPABASE_FUNCTIONS_REPO` (e.g., `owner/repo`).
+3. Enter your `SUPABASE_FUNCTIONS_PAT` (Personal Access Token). Requires `repo` permissions if private.
+4. Navigate to **Hosting & Projects -> Edge Functions** to deploy the `functions.zip` artifact to your server natively!
+
+---
+
+### 🗄️ 9. Database Management Guide
+The **Database Management** module works similarly to Edge Functions. It relies on GitHub Artifacts to safely deploy database changes without exposing your Supabase database ports to the internet.
+
+Your GitHub Actions or Release workflow should `zip` the contents of your `supabase/migrations/` and `supabase/seed.sql` files into a single artifact named `database.zip`.
+
+**Example Adding to GitHub Actions:**
+```yaml
+      - name: Zip Database
+        run: |
+          cd supabase
+          zip -r ../database.zip migrations/ seed.sql
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            functions.zip
+            database.zip
+```
+
+**Setup in Dashboard:**
+1. Configure your API token and Repo in **System Settings** (It shares the same settings as Edge Functions).
+2. Navigate to **Hosting & Projects -> Database Tools**.
+3. Select an Artifact. The system will download it, extract the SQL files, and query the internal `supabase_migrations.schema_migrations` table.
+4. It will compare the files and indicate which are `Applied` vs `Pending`.
+5. Click **Migrate All Pending** or run your **Seed**! All SQL executes safely over Docker internal copying (`docker cp`) preventing encoding corruption.
 
 ---
 

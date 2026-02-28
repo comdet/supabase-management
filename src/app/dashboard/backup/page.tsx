@@ -54,7 +54,7 @@ export default function BackupPage() {
             }
             if (vd.volumes?.length > 0) {
                 const hasVol = vd.volumes.find((v: any) => v.Name === 'supabase-storage');
-                setStorageVolume(hasVol ? 'supabase-storage' : vd.volumes[0].Name);
+                setStorageVolume(hasVol ? hasVol.Id || hasVol.Name : vd.volumes[0].Id || vd.volumes[0].Name);
             }
         } catch (err: any) {
             console.error('Failed to fetch options', err);
@@ -252,7 +252,9 @@ export default function BackupPage() {
                         >
                             <option value="">Select a volume...</option>
                             {volumes.map((v) => (
-                                <option key={v.Name} value={v.Name}>{v.Name}</option>
+                                <option key={v.Id || v.Name} value={v.Id || v.Name}>
+                                    {v.Type === 'bind' ? '[BIND] ' : ''}{v.Name}
+                                </option>
                             ))}
                         </select>
                     </div>

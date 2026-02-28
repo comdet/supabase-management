@@ -78,7 +78,8 @@ The security of this application centers around preventing unauthorized access t
 ### 1. Web Hosting & NGINX Automator (The Self-Hosted Vercel equivalent)
 - **Database**: Tracks project names, domains, and GitHub repository links in SQLite.
 - **Deploy Trigger**: `/api/hosting/deploy` connects to GitHub's raw API (with Optional Auth for Private Repos), downloads `.tar.gz` payload of a tagged release, extracts it natively using `tar --strip-components=1`, and plops it directly into the mapped destination web folder root.
-- **NGINX Symlink Generator**: Creates standard Site configurations and saves them temporarily to `/tmp/project.conf`. For strict security, the Host OS does NOT execute `sudo mv` autonomously anymore. Instead, it returns the generated commands arrays back to the Next.js Frontend UI (`/dashboard/hosting`), instructing the user to paste them in the terminal manually.
+- **NGINX Symlink Generator**: Creates standard SPA routing configurations and saves them temporarily to `/tmp/project.conf`. The generator embeds a global `include snippets/supabase-proxy.conf;` directive explicitly mapping Supabase APIs (Auth, Rest, Realtime, Storage, Functions, Vector) silently under standard ports (80/443).
+- **Execution**: For strict security, the Host OS does NOT execute `sudo mv` autonomously anymore. Instead, it returns the generated commands arrays back to the Next.js Frontend UI (`/dashboard/hosting`), instructing the user to paste them in the terminal manually.
 
 ### 2. Auto-Update via GitHub CI/CD Pipeline
 - **Continuous Integration**: When a developer tags a commit on GitHub, `release.yml` naturally creates an application bundle `build.tar.gz`.
@@ -95,6 +96,17 @@ Located in `/api/docker`. Relies strictly on the UNIX socket `/var/run/docker.so
 ### 5. Configs & File Manager Module (`/api/files`)
 The goal of the File manager is to visually represent areas of the Host OS, constrained to a predefined environment for security.
 - **Path Traversal Protection**: To mitigate directory traversal (`..` payload escapes), `/api/files/route.ts` runs a rigorous `resolveSafePath()` helper mapping back to `FILE_MANAGER_ROOT` in SQLite. Failure throws a hard 403.
+
+### 6. Supabase Management & Edge Functions Deployer (`/api/supabase/*`)
+Consolidates Supabase administration into a unified interface, tracking the base `SUPABASE_PROJECT_PATH`.
+- **Component Controller**: Automates updating the `docker-compose.yml` image tags natively via regex replacements and executes standard pull/up operations seamlessly. Includes a web-based Monaco editor to safely rewrite `.env` without nano/vim.
+- **Edge Functions Releases**: A dedicated sub-module acting as a CD (Continuous Deployment) listener. It utilizes a `SUPABASE_FUNCTIONS_PAT` stored securely in the database to ingest `functions.zip` assets remotely compiled on GitHub Private Repositories. It automatically unzips the binaries straight into the volume host mounts and orchestrates instantaneous `edge-runtime` container restarts.
+
+### 7. Database Management Module (`/api/database/*` & `/dashboard/database`)
+Provides a graphical and systematic approach to managing Supabase PostgreSQL schema migrations and seeds.
+- **Artifact-Based Migrations**: Instead of scanning host directories randomly, it strictly fetches `database.zip` artifacts defined in GitHub Releases (mirroring the Functions approach). This allows for strict version control tying Database Schema directly to Function releases.
+- **State Comparison**: It automatically joins local SQL filenames extracted from the zip with the live PostgreSQL `supabase_migrations.schema_migrations` system table, visually determining which migrations are "Pending" or already "Applied".
+- **Secure Encoding Execution**: Mitigates nasty Windows Docker Pipe encoding bugs (e.g. Thai character corruption) by exclusively relying on `docker cp` to transit SQL artifacts into the container runtime BEFORE executing them via `psql -f`. Includes Public Schema Dumps and Clear actions.
 
 ---
 

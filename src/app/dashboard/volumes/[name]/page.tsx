@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, RefreshCw, ServerCrash, FileText, Folder, Download, HardDrive } from 'lucide-react';
 import Link from 'next/link';
+import { useCallback } from 'react';
 
 type FileItem = {
     name: string;
@@ -22,11 +23,19 @@ export default function VolumeFilesPage() {
     const volumeName = params.name as string;
     const currentPath = searchParams.get('path') || '/';
 
+    // Decode display name for bind mounts
+    let displayVolumeName = volumeName;
+    if (displayVolumeName.startsWith('bind-')) {
+        const hexPart = displayVolumeName.substring(5);
+        const bytes = new Uint8Array(hexPart.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+        displayVolumeName = new TextDecoder().decode(bytes);
+    }
+
     const [files, setFiles] = useState<FileItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const fetchFiles = async () => {
+    const fetchFiles = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
@@ -38,18 +47,19 @@ export default function VolumeFilesPage() {
             }
 
             setFiles(data.files);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const errorResponse = err as { message: string };
+            setError(errorResponse.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, [volumeName, currentPath]);
 
     useEffect(() => {
         if (volumeName) {
             fetchFiles();
         }
-    }, [volumeName, currentPath]);
+    }, [volumeName, fetchFiles]);
 
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 B';
@@ -76,7 +86,7 @@ export default function VolumeFilesPage() {
                             <HardDrive className="w-6 h-6 text-blue-500" />
                             Volume Browser
                         </h1>
-                        <p className="text-sm text-neutral-400 max-w-lg truncate">{volumeName}</p>
+                        <p className="text-sm text-neutral-400 max-w-lg truncate" title={displayVolumeName}>{displayVolumeName}</p>
                     </div>
                 </div>
                 <button

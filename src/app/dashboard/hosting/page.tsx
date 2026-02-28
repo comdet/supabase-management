@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Github, Globe, Server, RefreshCw, AlertCircle } from "lucide-react";
 
+interface Release {
+    id: number;
+    name: string;
+    published_at: string;
+    tarball_url: string;
+}
+
 interface Project {
     id: number;
     project_name: string;
@@ -36,7 +43,7 @@ export default function HostingPage() {
 
     // Deploy Form State
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [releases, setReleases] = useState<any[]>([]);
+    const [releases, setReleases] = useState<Release[]>([]);
     const [loadingReleases, setLoadingReleases] = useState(false);
     const [deploying, setDeploying] = useState(false);
 
@@ -70,7 +77,7 @@ export default function HostingPage() {
             const data = await res.json();
             setNginxStatus(data.status);
         } catch (error) {
-            setNginxStatus('error');
+            console.error('Failed to load projects:', error);
         }
     };
 
@@ -97,7 +104,7 @@ export default function HostingPage() {
                 const data = await res.json();
                 alert(data.error || 'Failed to create');
             }
-        } catch (error) {
+        } catch {
             alert('An error occurred');
         }
     };
@@ -130,14 +137,14 @@ export default function HostingPage() {
             } else {
                 alert(data.error || 'Failed to fetch releases');
             }
-        } catch (error) {
+        } catch (err: unknown) {
             alert('An error occurred');
         } finally {
             setLoadingReleases(false);
         }
     };
 
-    const handleDeploy = async (release: any) => {
+    const handleDeploy = async (release: Release) => {
         if (!selectedProject) return;
 
         if (!confirm(`Deploy version ${release.name} to ${selectedProject.domain_name}?`)) return;
@@ -181,8 +188,9 @@ export default function HostingPage() {
             setShowDeployModal(false);
             fetchProjects();
 
-        } catch (error: any) {
-            alert(`Deployment failed: ${error.message}`);
+        } catch (error: unknown) {
+            const err = error as Error;
+            alert(`Deployment failed: ${err.message}`);
         } finally {
             setDeploying(false);
         }
@@ -214,12 +222,31 @@ export default function HostingPage() {
                     <Server className="w-5 h-5 text-blue-400" />
                     How NGINX Auto-Config Works
                 </h2>
-                <div className="text-sm text-slate-400 space-y-2">
+                <div className="text-sm text-slate-400 space-y-3">
                     <p>When you deploy a project, the system downloads and extracts your repository to the <strong className="text-slate-200">Deploy Path (Root)</strong> you specified.</p>
-                    <p>It then automatically generates an NGINX <code className="bg-black px-1.5 py-0.5 rounded text-pink-400">.conf</code> file and places it in <code className="bg-black px-1.5 py-0.5 rounded">/tmp/</code> for safety. You will be provided with a set of <code className="text-green-400">sudo</code> commands to run manually in the terminal to move this config to <code className="bg-black px-1.5 py-0.5 rounded">/etc/nginx/sites-available</code> and enable the site.</p>
+                    <p>It then automatically generates an NGINX <code className="bg-black px-1.5 py-0.5 rounded text-pink-400">.conf</code> file and places it in <code className="bg-black px-1.5 py-0.5 rounded">/tmp/</code> for safety. You will be provided with a set of <code className="text-green-400">sudo</code> commands to run manually in the terminal to enable the site.</p>
+                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+                        <strong className="text-slate-200 flex items-center gap-2 mb-2"><Globe className="w-4 h-4" /> Global Supabase Proxy</strong>
+                        <p className="mb-2">Your site configurations are generated to automatically include a shared proxy configuration. For this to work, you must create a master snippet file on your server <strong>once</strong>.</p>
+                        <p>Create the file: <code className="bg-black text-blue-400 px-1.5 py-0.5 rounded">sudo nano /etc/nginx/snippets/supabase-proxy.conf</code> and add the following:</p>
+                        <pre className="bg-black p-3 mt-2 rounded border border-slate-800 text-xs overflow-x-auto text-emerald-400">
+                            {`location ~ ^/(rest|auth|storage|functions|realtime)/ {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+}`}
+                        </pre>
+                    </div>
+                    <p className="mt-2 text-amber-500 flex items-center gap-1.5 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <strong>Important:</strong> Ensure the user running this dashboard has read/write permissions to your chosen
+                    </p>
                     <p className="mt-2 text-amber-500 flex items-center gap-1.5 mt-4 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
                         <AlertCircle className="w-4 h-4 shrink-0" />
-                        <strong>Important:</strong> Ensure the user running this dashboard has read/write permissions to your chosen <i>Deploy Path</i>. By default, NGINX runs as `www-data`. You may need to adjust folder permissions (`chown -R www-data:www-data /your/path`) after deployment for public access.
+                        <strong>Important:</strong><i>Deploy Path</i>. By default, NGINX runs as `www-data`. You may need to adjust folder permissions (`chown -R www-data:www-data /your/path`) after deployment for public access.
                     </p>
                 </div>
             </div>

@@ -31,12 +31,19 @@ export async function GET(
             });
         });
 
+        // Decode bind mount safe ID if it was passed
+        let decodedName = resolvedParams.name;
+        if (decodedName.startsWith('bind-')) {
+            const hexPart = decodedName.substring(5);
+            decodedName = Buffer.from(hexPart, 'hex').toString('utf-8');
+        }
+
         // We stream the file via 'cat' from an alpine container
         const container = await docker.createContainer({
             Image: 'alpine',
             Cmd: ['cat', targetPath],
             HostConfig: {
-                Binds: [`${resolvedParams.name}:/vol:ro`]
+                Binds: [`${decodedName}:/vol:ro`]
             }
         });
 

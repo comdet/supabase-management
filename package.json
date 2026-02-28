@@ -1,6 +1,6 @@
 {
   "name": "supabase-manager",
-  "version": "1.1.5",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "node server.js",
@@ -9,8 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@cubone/react-file-manager": "^1.35.0",
     "@fontsource/nunito-sans": "^5.2.7",
+    "@monaco-editor/react": "^4.7.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "axios": "^1.13.5",

@@ -79,12 +79,18 @@ export async function POST(req: Request) {
                 });
             });
 
+            let decodedVolumeName = volumeName;
+            if (decodedVolumeName.startsWith('bind-')) {
+                const hexPart = decodedVolumeName.substring(5);
+                decodedVolumeName = Buffer.from(hexPart, 'hex').toString('utf-8');
+            }
+
             // Read the tar from stdin and extract it to /vol
             const container = await docker.createContainer({
                 Image: 'alpine:latest',
                 Cmd: ['tar', '-xzf', '-', '-C', '/vol'],
                 HostConfig: {
-                    Binds: [`${volumeName}:/vol`] // Write access needed format: volumeName:/path/in/container
+                    Binds: [`${decodedVolumeName}:/vol`] // Write access needed format: volumeName:/path/in/container
                 },
                 AttachStdin: true,
                 AttachStdout: true,

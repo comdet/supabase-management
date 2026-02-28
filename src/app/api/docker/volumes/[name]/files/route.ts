@@ -28,6 +28,13 @@ export async function GET(
             });
         });
 
+        // Decode bind mount safe ID if it was passed
+        let decodedName = resolvedParams.name;
+        if (decodedName.startsWith('bind-')) {
+            const hexPart = decodedName.substring(5);
+            decodedName = Buffer.from(hexPart, 'hex').toString('utf-8');
+        }
+
         // We spawn a tiny alpine container to list the files inside the volume
         // This avoids needing root access on the host to read /var/lib/docker/volumes
 
@@ -35,7 +42,7 @@ export async function GET(
             Image: 'alpine',
             Cmd: ['sh', '-c', `ls -la "${targetPath}"`],
             HostConfig: {
-                Binds: [`${resolvedParams.name}:/vol:ro`] // Mount read-only
+                Binds: [`${decodedName}:/vol:ro`] // Mount read-only
             }
         });
 
