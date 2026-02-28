@@ -60,8 +60,9 @@ export default function UpdateSystemPage() {
                     await axios.get("/api/system/update", { timeout: 2000 });
                     // If we get here, server is back!
                     clearInterval(pingInterval);
-                    appendLog("Server is online! Reloading dashboard in 3 seconds...");
-                    setTimeout(() => router.refresh(), 3000);
+                    appendLog("Server is online! Reloading browser in 3 seconds...");
+                    // Using full page reload to clear old client-side JS caches
+                    setTimeout(() => window.location.reload(), 3000);
                 } catch (e) {
                     if (retries > 20) {
                         clearInterval(pingInterval);
