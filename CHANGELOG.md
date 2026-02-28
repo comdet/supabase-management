@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1] - $(date +'%Y-%m-%d')
+
+### 🐛 Bug Fixes & Refactoring
+- **PM2 Dashboard**: Restored the missing `pm2` monitoring page which previously returned a 404 error after the layout redesign.
+
+### ⚙️ Automation & Tooling
+- **Release Workflow**: Updated the release automation workflow (`.agents/workflows`) to automatically bump the version badge within `README.md`.
+
 ## [1.1.0] - $(date +'%Y-%m-%d')
 
 ### ✨ Features
