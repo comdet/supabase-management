@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3] - $(date +'%Y-%m-%d')
+
+### 🐛 Bug Fixes & Refactoring
+- **System Auto Updater**: 
+  - Fixed an issue where Auto Update caused Next.js routing glitches (displaying old javascript code/APIs like `/api/system/cron` instead of newer pm2 endpoints) due to the caching mechanism. The API will now properly flush out and **delete the old `.next` runtime directory** entirely before extracting the new GitHub Action artifact.
+  - Stopped using `npm install --omit=dev` inside the updater to prevent it from secretly wiping existing `node_modules` structure that often confuses manually managing users into thinking their builds were broken. 
+  - Note: You **DO NOT** need to run `npm run build` server-side, as the GitHub Actions pipeline inherently packages a production-ready `.next` binary inside the `release.tar.gz`.
+
 ## [1.1.2] - $(date +'%Y-%m-%d')
 
 ### 🐛 Bug Fixes & Refactoring
