@@ -10,8 +10,8 @@ const execAsync = util.promisify(exec);
 
 export async function GET() {
     try {
-        const repo = await getSetting('SUPABASE_FUNCTIONS_REPO', '');
-        const pat = await getSetting('SUPABASE_FUNCTIONS_PAT', '');
+        const repo = await getSetting('GITHUB_ARTIFACTS_REPO', '');
+        const pat = await getSetting('GITHUB_ARTIFACTS_PAT', '');
 
         if (!repo) {
             return NextResponse.json({ error: 'GitHub Repository not configured in settings. Go to Settings to configure.' }, { status: 400 });

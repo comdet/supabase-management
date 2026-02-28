@@ -3,17 +3,14 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
-import { db } from '@/lib/db';
+import { getSetting } from '@/lib/db';
 
 const execAsync = promisify(exec);
 
 export async function GET() {
     try {
-        const repoRow = db.prepare(`SELECT value FROM settings WHERE key = 'SUPABASE_FUNCTIONS_REPO'`).get() as unknown as { value: string };
-        const patRow = db.prepare(`SELECT value FROM settings WHERE key = 'SUPABASE_FUNCTIONS_PAT'`).get() as unknown as { value: string };
-
-        const repo = repoRow?.value;
-        const pat = patRow?.value;
+        const repo = await getSetting('GITHUB_ARTIFACTS_REPO', '');
+        const pat = await getSetting('GITHUB_ARTIFACTS_PAT', '');
 
         if (!repo) {
             return NextResponse.json({ releases: [], repo: '' });
@@ -48,8 +45,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Asset URL is required' }, { status: 400 });
         }
 
-        const patRow = db.prepare(`SELECT value FROM settings WHERE key = 'SUPABASE_FUNCTIONS_PAT'`).get() as unknown as { value: string };
-        const pat = patRow?.value;
+        const pat = await getSetting('GITHUB_ARTIFACTS_PAT', '');
 
         const downloadPath = path.join('/tmp', 'database_artifact.zip');
         const extractPath = path.join('/tmp', 'database_artifact');

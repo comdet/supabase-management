@@ -272,7 +272,7 @@ export default function DatabasePage() {
                                 </>
                             ) : (
                                 <div className="text-sm text-neutral-500 text-center py-4 bg-neutral-950 rounded-lg">
-                                    No GitHub repository configured. Go to Settings.
+                                    No Artifacts repository configured. Go to Settings.
                                 </div>
                             )}
                         </div>

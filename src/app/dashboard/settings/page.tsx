@@ -16,8 +16,8 @@ export default function SettingsPage() {
         BACKUP_DIR: '',
         FILE_MANAGER_ROOT: '',
         SUPABASE_PROJECT_PATH: '',
-        SUPABASE_FUNCTIONS_REPO: '',
-        SUPABASE_FUNCTIONS_PAT: ''
+        GITHUB_ARTIFACTS_REPO: '',
+        GITHUB_ARTIFACTS_PAT: ''
     });
 
     // State for Passwords
@@ -37,8 +37,8 @@ export default function SettingsPage() {
                         BACKUP_DIR: res.data.BACKUP_DIR || '',
                         FILE_MANAGER_ROOT: res.data.FILE_MANAGER_ROOT || '',
                         SUPABASE_PROJECT_PATH: res.data.SUPABASE_PROJECT_PATH || '',
-                        SUPABASE_FUNCTIONS_REPO: res.data.SUPABASE_FUNCTIONS_REPO || '',
-                        SUPABASE_FUNCTIONS_PAT: res.data.SUPABASE_FUNCTIONS_PAT || ''
+                        GITHUB_ARTIFACTS_REPO: res.data.GITHUB_ARTIFACTS_REPO || '',
+                        GITHUB_ARTIFACTS_PAT: res.data.GITHUB_ARTIFACTS_PAT || ''
                     });
                 }
             } catch (err: unknown) {
@@ -77,8 +77,8 @@ export default function SettingsPage() {
                 backupDir: settings.BACKUP_DIR,
                 fileManagerRoot: settings.FILE_MANAGER_ROOT,
                 supabaseProjectPath: settings.SUPABASE_PROJECT_PATH,
-                supabaseFunctionsRepo: settings.SUPABASE_FUNCTIONS_REPO,
-                supabaseFunctionsPat: settings.SUPABASE_FUNCTIONS_PAT
+                githubArtifactsRepo: settings.GITHUB_ARTIFACTS_REPO,
+                githubArtifactsPat: settings.GITHUB_ARTIFACTS_PAT
             };
 
             const res = await axios.post('/api/settings', payload);
@@ -255,7 +255,7 @@ export default function SettingsPage() {
                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/50 flex items-center gap-2">
                         <Github className="w-5 h-5 text-indigo-400" />
-                        <h2 className="font-semibold text-white">Supabase Functions (Private Github Repo)</h2>
+                        <h2 className="font-semibold text-white">GitHub Webhooks & Artifacts (Functions & Database)</h2>
                     </div>
                     <div className="p-6 space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -263,27 +263,27 @@ export default function SettingsPage() {
                                 <label className="text-sm font-medium text-neutral-300">GitHub Repository URL or Path</label>
                                 <input
                                     type="text"
-                                    value={settings.SUPABASE_FUNCTIONS_REPO}
-                                    onChange={(e) => setSettings({ ...settings, SUPABASE_FUNCTIONS_REPO: e.target.value })}
+                                    value={settings.GITHUB_ARTIFACTS_REPO}
+                                    onChange={(e) => setSettings({ ...settings, GITHUB_ARTIFACTS_REPO: e.target.value })}
                                     className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono"
                                     placeholder="owner/repo"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
-                                    The private repository holding your Deno compiled edge functions (e.g. <code>my-org/backend-repo</code>).
+                                    The private repository holding your GitHub Action compiled artifacts (e.g. <code>my-org/backend-repo</code>).
                                 </p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-neutral-300">GitHub Personal Access Token (PAT)</label>
                                 <input
                                     type="password"
-                                    value={settings.SUPABASE_FUNCTIONS_PAT}
-                                    onChange={(e) => setSettings({ ...settings, SUPABASE_FUNCTIONS_PAT: e.target.value })}
+                                    value={settings.GITHUB_ARTIFACTS_PAT}
+                                    onChange={(e) => setSettings({ ...settings, GITHUB_ARTIFACTS_PAT: e.target.value })}
                                     className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono"
                                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxxx"
                                     autoComplete="off"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
-                                    Required to download release artifacts from private repositories.
+                                    Required to download release artifacts from private repositories like <code>functions.zip</code> or <code>database.zip</code>.
                                 </p>
                             </div>
                         </div>

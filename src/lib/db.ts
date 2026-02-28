@@ -39,8 +39,13 @@ export const db = new sqlite3.Database(dbPath, (err) => {
                 db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('BACKUP_DIR', '/tmp/backups')`);
                 db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('FILE_MANAGER_ROOT', '/')`);
                 db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('SUPABASE_PROJECT_PATH', '/home/user/supabase-project')`);
-                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('SUPABASE_FUNCTIONS_REPO', '')`);
-                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('SUPABASE_FUNCTIONS_PAT', '')`);
+
+                // Migrate old keys to new ones if they exist
+                db.run(`UPDATE OR IGNORE settings SET key = 'GITHUB_ARTIFACTS_REPO' WHERE key = 'SUPABASE_FUNCTIONS_REPO'`);
+                db.run(`UPDATE OR IGNORE settings SET key = 'GITHUB_ARTIFACTS_PAT' WHERE key = 'SUPABASE_FUNCTIONS_PAT'`);
+
+                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('GITHUB_ARTIFACTS_REPO', '')`);
+                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('GITHUB_ARTIFACTS_PAT', '')`);
             }
         });
 
