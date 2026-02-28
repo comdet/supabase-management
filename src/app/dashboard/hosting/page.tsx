@@ -209,12 +209,27 @@ export default function HostingPage() {
                 </div>
             </div>
 
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
+                    <Server className="w-5 h-5 text-blue-400" />
+                    How NGINX Auto-Config Works
+                </h2>
+                <div className="text-sm text-slate-400 space-y-2">
+                    <p>When you deploy a project, the system downloads and extracts your repository to the <strong className="text-slate-200">Deploy Path (Root)</strong> you specified.</p>
+                    <p>It then automatically generates an NGINX <code className="bg-black px-1.5 py-0.5 rounded text-pink-400">.conf</code> file and places it in <code className="bg-black px-1.5 py-0.5 rounded">/tmp/</code> for safety. You will be provided with a set of <code className="text-green-400">sudo</code> commands to run manually in the terminal to move this config to <code className="bg-black px-1.5 py-0.5 rounded">/etc/nginx/sites-available</code> and enable the site.</p>
+                    <p className="mt-2 text-amber-500 flex items-center gap-1.5 mt-4 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <strong>Important:</strong> Ensure the user running this dashboard has read/write permissions to your chosen <i>Deploy Path</i>. By default, NGINX runs as `www-data`. You may need to adjust folder permissions (`chown -R www-data:www-data /your/path`) after deployment for public access.
+                    </p>
+                </div>
+            </div>
+
             {loading ? (
                 <div className="text-center py-12">Loading projects...</div>
             ) : projects.length === 0 ? (
-                <Card className="border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-                        <Globe className="w-12 h-12 mb-4 opacity-50" />
+                <Card className="border-dashed bg-transparent border-slate-700">
+                    <CardContent className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
+                        <Globe className="w-12 h-12 mb-4 opacity-30" />
                         <p>No projects found. Create one to get started.</p>
                     </CardContent>
                 </Card>
