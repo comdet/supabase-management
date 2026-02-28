@@ -28,7 +28,7 @@ export default function PM2Dashboard() {
     const fetchPM2Data = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/system/cron');
+            const res = await fetch('/api/system/pm2');
             if (!res.ok) throw new Error('Failed to fetch PM2 data');
             const data = await res.json();
             setProcesses(data.pm2 || []);
@@ -47,16 +47,22 @@ export default function PM2Dashboard() {
     }, []);
 
     const performAction = async (pm_id: number, action: string) => {
+        if (!confirm(`Are you sure you want to ${action} process ID ${pm_id}?`)) return;
+
         try {
             setActionLoading(pm_id);
-            // We reuse the cron API for PM2 actions via query or body if supported. 
-            // In a real app we'd have a dedicated /api/system/pm2/action route.
-            // But since this reads via /api/system/cron currently, let's just refresh for now
-            // or implement a basic reload call.
-            console.log(`Action ${action} omitted for visual proxy. Re-fetching.`);
+            const res = await fetch('/api/system/pm2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, id: pm_id })
+            });
+            const result = await res.json();
+
+            if (!res.ok) throw new Error(result.error || `Failed to ${action}`);
             await fetchPM2Data();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            setError(err.message);
         } finally {
             setActionLoading(null);
         }
@@ -85,7 +91,7 @@ export default function PM2Dashboard() {
                         <Activity className="w-7 h-7 mr-3 text-blue-500" />
                         PM2 Process Monitor
                     </h1>
-                    <p className="text-neutral-400 mt-1">Monitor your background node tasks daemonized by PM2.</p>
+                    <p className="text-neutral-400 mt-1">Manage and monitor node tasks daemonized by PM2.</p>
                 </div>
                 <button
                     onClick={fetchPM2Data}
@@ -115,7 +121,7 @@ export default function PM2Dashboard() {
                                 <th className="p-4 font-medium">CPU</th>
                                 <th className="p-4 font-medium">Memory</th>
                                 <th className="p-4 font-medium">Uptime</th>
-                                <th className="p-4 font-medium">Restarts</th>
+                                <th className="p-4 font-medium">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800 text-sm">
@@ -129,6 +135,7 @@ export default function PM2Dashboard() {
                                 processes.map((proc) => {
                                     const status = proc.pm2_env?.status || 'unknown';
                                     const isOnline = status === 'online';
+                                    const isLoading = actionLoading === proc.pm_id;
 
                                     return (
                                         <tr key={proc.pm_id} className="hover:bg-neutral-800/50 transition-colors">
@@ -153,10 +160,49 @@ export default function PM2Dashboard() {
                                                 {formatBytes(proc.monit?.memory || 0)}
                                             </td>
                                             <td className="p-4 text-neutral-400">
-                                                {proc.pm2_env?.created_at ? formatUptime(proc.pm2_env.created_at) : '-'}
+                                                {proc.pm2_env?.created_at && isOnline ? formatUptime(proc.pm2_env.created_at) : '-'}
+                                                <div className="text-xs text-neutral-500 mt-1">Restarts: {proc.pm2_env?.restart_time || 0}</div>
                                             </td>
-                                            <td className="p-4 text-neutral-400">
-                                                {proc.pm2_env?.restart_time || 0}
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    {isOnline ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => performAction(proc.pm_id, 'restart')}
+                                                                disabled={isLoading}
+                                                                className="p-1.5 text-blue-400 hover:bg-blue-500/20 rounded transition-colors disabled:opacity-50"
+                                                                title="Restart Process"
+                                                            >
+                                                                <RotateCw className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => performAction(proc.pm_id, 'stop')}
+                                                                disabled={isLoading}
+                                                                className="p-1.5 text-orange-400 hover:bg-orange-500/20 rounded transition-colors disabled:opacity-50"
+                                                                title="Stop Process"
+                                                            >
+                                                                <Square className="w-4 h-4" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => performAction(proc.pm_id, 'restart')}
+                                                            disabled={isLoading}
+                                                            className="p-1.5 text-emerald-400 hover:bg-emerald-500/20 rounded transition-colors disabled:opacity-50"
+                                                            title="Start Process"
+                                                        >
+                                                            <Play className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => performAction(proc.pm_id, 'delete')}
+                                                        disabled={isLoading}
+                                                        className="p-1.5 text-red-400 hover:bg-red-500/20 rounded transition-colors disabled:opacity-50"
+                                                        title="Delete Process (Kill)"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

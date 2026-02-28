@@ -24,7 +24,7 @@ When the user triggers this workflow (e.g., via `/release-new-version`), you MUS
 
 5. **Commit and Tag**:
    // turbo-all
-   - `git add package.json` (and any other files modified for the release).
+   - `git add .`
    - `git commit -m "chore: release version v<NEW_VERSION>"`
    - `git tag v<NEW_VERSION>`
    - `git push origin main`

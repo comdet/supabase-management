@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.5] - $(date +'%Y-%m-%d')
+
+### 🐛 Bug Fixes & Refactoring
+- **Missing Source Code Sync**: Fixed a critical issue where the previous CI/CD GitHub action releases (1.1.2 - 1.1.4) failed to push the real source code modifications (PM2 actions and Update mechanisms) to the repository. The workflow has been forcefully updated to `git add .` ensuring all subsequent backend and frontend code syncs properly.
+
 ## [1.1.4] - $(date +'%Y-%m-%d')
 
 ### ✨ Features & Enhancements
