@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.4] - $(date +'%Y-%m-%d')
+
+### ✨ Features & Enhancements
+- **Hosting Dashboard**: Added a comprehensive `How NGINX Auto-Config Works` guide to the `/dashboard/hosting` page. This guide clarifies the deployment paths, the temporary storage of generated `.conf` files, and the necessary directory permissions (`www-data`) required for NGINX to serve the deployed files effectively.
+
 ## [1.1.3] - $(date +'%Y-%m-%d')
 
 ### 🐛 Bug Fixes & Refactoring
