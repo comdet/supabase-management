@@ -80,7 +80,6 @@ export async function POST(req: Request) {
         await new Promise((resolve, reject) => {
             const file = createWriteStream(TAR_PATH);
             https.get(downloadUrl, (response) => {
-                // Handle GitHub redirects
                 if (response.statusCode === 302 || response.statusCode === 301) {
                     const redirectUrl = response.headers.location;
                     if (!redirectUrl) return reject(new Error('Redirect URL missing'));
@@ -96,23 +95,31 @@ export async function POST(req: Request) {
                     file.on('finish', () => { file.close(); resolve(true); });
                 }
             }).on('error', (err) => {
-                fs.unlink(TAR_PATH).catch(() => { }); // Try deleting partial file
+                fs.unlink(TAR_PATH).catch(() => { });
                 reject(err);
             });
         });
 
+        // 1.5. Remove previous build directory completely to prevent old hashed chunks from serving cached JS
+        const nextDir = path.join(PROJECT_DIR, '.next');
+        try {
+            await fs.rm(nextDir, { recursive: true, force: true });
+        } catch (rmError) {
+            console.warn('Could not remove .next directory, bypassing...', rmError);
+        }
+
         // 2. Extract the tar.gz directly over the project directory
-        // tar.x automatically overwrites files if it exists, but we ensure we don't break permissions
+        // NOTE: The .tar.gz bundle from GitHub Actions ALREADY contains a fully compiled .next folder!
+        // So NO NEED to run `npm run build` on this server again.
         await tar.x({
             file: TAR_PATH,
-            C: PROJECT_DIR,      // Extract into current project dir
-            keep: false          // Overwrite existing files
+            C: PROJECT_DIR,
+            keep: false
         });
 
-        // 3. Install production dependencies (Optional but recommended if package.json changed)
-        // Especially useful for native modules like sqlite3 or bcryptjs after extraction
+        // 3. Install ALL dependencies (avoiding --omit=dev so the user's manual node_modules doesn't look completely deleted/broken)
         try {
-            await execAsync('npm install --omit=dev', { cwd: PROJECT_DIR });
+            await execAsync('npm install', { cwd: PROJECT_DIR });
         } catch (npmErr) {
             console.warn('npm install warning (non-fatal):', npmErr);
         }
