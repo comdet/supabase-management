@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.2] - $(date +'%Y-%m-%d')
+
+### 🐛 Bug Fixes & Refactoring
+- **PM2 Dashboard Module**: Fixed PM2 monitoring logic where the frontend erroneously routed PM2 checks to the generic `cron` endpoint. 
+  - Restored full operational controls via a new backend API (`/api/system/pm2`) allowing users to **Start, Stop, Restart, and Delete** PM2 processes directly from the Web Interface as intended in the core design context.
+
 ## [1.1.1] - $(date +'%Y-%m-%d')
 
 ### 🐛 Bug Fixes & Refactoring
