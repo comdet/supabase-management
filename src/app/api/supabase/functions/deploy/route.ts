@@ -5,6 +5,7 @@ import util from 'util';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import axios from 'axios';
 
 const execAsync = util.promisify(exec);
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { assetUrl } = body;
 
-        const pat = await getSetting('SUPABASE_FUNCTIONS_PAT', '');
+        const pat = await getSetting('GITHUB_ARTIFACTS_PAT', '');
         const projectPath = await getSetting('SUPABASE_PROJECT_PATH', '');
 
         if (!assetUrl) return NextResponse.json({ error: 'Asset API URL is required' }, { status: 400 });
@@ -65,15 +66,36 @@ export async function POST(req: NextRequest) {
 
         const tmpFilePath = path.join(os.tmpdir(), `functions_${Date.now()}.zip`);
 
-        // 1. Download asset carefully using curl (prevents Authorization header leak on S3 redirect)
-        let curlCmd = `curl -L -s -w "%{http_code}" -o "${tmpFilePath}" "${assetUrl}"`;
+        // 1. Download asset using Axios (Axios safely drops Authorization header upon S3 redirect, preventing 400/401 errors)
+        const headers: Record<string, string> = {
+            'Accept': 'application/octet-stream',
+            'User-Agent': 'Supabase-Manager'
+        };
+
         if (pat) {
-            curlCmd = `curl -L -s -w "%{http_code}" -H "Authorization: token ${pat}" -H "Accept: application/octet-stream" -o "${tmpFilePath}" "${assetUrl}"`;
+            headers['Authorization'] = `token ${pat}`;
         }
 
-        const { stdout: curlStatus } = await execAsync(curlCmd);
-        if (curlStatus !== '200' && curlStatus !== '201') {
-            return NextResponse.json({ error: `GitHub Asset Download returned ${curlStatus}: Unauthorized or Not Found` }, { status: 400 });
+        try {
+            const response = await axios({
+                method: 'get',
+                url: assetUrl,
+                responseType: 'stream',
+                headers: headers,
+                maxRedirects: 10
+            });
+
+            const writer = fs.createWriteStream(tmpFilePath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', () => resolve(true));
+                writer.on('error', reject);
+            });
+        } catch (downloadErr: any) {
+            console.error('Functions asset download error:', downloadErr.message);
+            const status = downloadErr.response?.status || 400;
+            return NextResponse.json({ error: `GitHub Asset Download failed (${status}): Check PAT token or Asset URL` }, { status });
         }
 
         // 2. Extract asset to Supabase volumes/functions

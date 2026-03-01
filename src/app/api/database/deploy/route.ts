@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import { getSetting } from '@/lib/db';
+import axios from 'axios';
 
 const execAsync = promisify(exec);
 
@@ -50,14 +51,37 @@ export async function POST(req: Request) {
         const downloadPath = path.join('/tmp', 'database_artifact.zip');
         const extractPath = path.join('/tmp', 'database_artifact');
 
-        // Download carefully, using PAT if present
-        let curlCmd = `curl -L -o ${downloadPath} "${assetUrl}"`;
+        // Download carefully using Axios, which automatically drops the Authorization header when redirecting to S3
+        const headers: Record<string, string> = {
+            'Accept': 'application/octet-stream',
+            'User-Agent': 'Supabase-Manager'
+        };
+
         if (pat) {
-            // Use API header to download asset natively
-            curlCmd = `curl -L -H "Authorization: token ${pat}" -H "Accept: application/octet-stream" -o ${downloadPath} "${assetUrl}"`;
+            headers['Authorization'] = `token ${pat}`;
         }
 
-        await execAsync(curlCmd);
+        try {
+            const response = await axios({
+                method: 'get',
+                url: assetUrl,
+                responseType: 'stream',
+                headers: headers,
+                maxRedirects: 10
+            });
+
+            const writer = fs.createWriteStream(downloadPath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', () => resolve(true));
+                writer.on('error', reject);
+            });
+        } catch (downloadErr: any) {
+            console.error('Database artifact download error:', downloadErr.message);
+            const status = downloadErr.response?.status || 400;
+            return NextResponse.json({ error: `GitHub Asset Download failed (${status}): Check PAT token or Asset URL` }, { status });
+        }
 
         // Ensure extract dir exists and is clear
         if (fs.existsSync(extractPath)) {
