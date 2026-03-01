@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.2] - $(date +'%Y-%m-%d')
+
+### ✨ Features & Enhancements
+- **Hosting Dashboard**: You can now **Edit** existing projects directly from the dashboard card. Just click the new gear/edit icon to update your Domain, Deploy Path, and Access Tokens without having to delete and recreate the project!
+
+### 🐛 Bug Fixes & Refactoring
+- **Private Repository Fetching**: Fixed a logic flaw where the `PAT` (Personal Access Token) was not being passed to the GitHub API when checking for releases. The backend now natively retrieves the secure token associated with your project directly from the database and decrypts/authorizes the request, allowing you to fetch and deploy private repositories seamlessly.
+- **Dependencies**: Added missing `@monaco-editor/react` library to prevent build failures on the Supabase page.
+
 ## [1.1.5] - $(date +'%Y-%m-%d')
 
 ### 🐛 Bug Fixes & Refactoring

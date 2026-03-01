@@ -41,10 +41,26 @@ export async function GET(req: NextRequest) {
         // ดึง Release / Tags จาก GitHub
         if (action === 'releases') {
             const repo = url.searchParams.get('repo');
-            const token = url.searchParams.get('token');
+            const projectId = url.searchParams.get('projectId');
 
-            if (!repo) {
-                return NextResponse.json({ error: 'Repository name required (owner/repo)' }, { status: 400 });
+            if (!repo || !projectId) {
+                return NextResponse.json({ error: 'Repository name and Project ID required' }, { status: 400 });
+            }
+
+            // ดึง Token จากหน้าบ้านหรือจากฐานข้อมูลโดยตรง
+            let token = url.searchParams.get('token');
+            if (!token) {
+                const project = await new Promise((resolve, reject) => {
+                    const sqlite3 = require('sqlite3').verbose();
+                    const db = new sqlite3.Database('./management.db');
+                    db.get('SELECT pat_token FROM hosting_projects WHERE id = ?', [projectId], (err: any, row: any) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                }) as any;
+                if (project && project.pat_token) {
+                    token = project.pat_token;
+                }
             }
 
             const headers: any = {
@@ -53,7 +69,6 @@ export async function GET(req: NextRequest) {
             };
 
             if (token) {
-                // TODO: ในอนาคตถ้าเก็บ PAT แบบเข้ารหัส ต้องถอดรหัสก่อน
                 headers['Authorization'] = `token ${token}`;
             }
 
@@ -127,6 +142,38 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Project created successfully' });
     } catch (error: any) {
         console.error('Create hosting project error:', error);
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+// อัปเดตข้อมูล Project
+export async function PUT(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const { id, project_name, github_repo, pat_token, domain_name, deploy_path } = body;
+
+        if (!id || !project_name || !github_repo || !domain_name || !deploy_path) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        const currentProject = await dbGet('SELECT * FROM hosting_projects WHERE id = ?', [id]);
+        if (!currentProject) {
+            return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+        }
+
+        // Keep the old token if the input is empty (indicated by asterisks or just empty string, but let's allow explicit clearing if needed)
+        // Usually, if pat_token is purely '***', we ignore the update to that field.
+        const newTokenToSave = (pat_token === '***' || !pat_token) ? currentProject.pat_token : pat_token;
+
+        await dbRun(`
+            UPDATE hosting_projects 
+            SET project_name = ?, github_repo = ?, pat_token = ?, domain_name = ?, deploy_path = ?
+            WHERE id = ?
+        `, [project_name, github_repo, newTokenToSave, domain_name, deploy_path, id]);
+
+        return NextResponse.json({ message: 'Project updated successfully' });
+    } catch (error: any) {
+        console.error('Update hosting project error:', error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

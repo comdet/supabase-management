@@ -32,7 +32,10 @@ export default function HostingPage() {
     const [showCommandsModal, setShowCommandsModal] = useState(false);
     const [deployCommands, setDeployCommands] = useState<string[]>([]);
 
-    // Create Form State
+    // Form / Modal State
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+
     const [newProject, setNewProject] = useState({
         project_name: '',
         github_repo: '',
@@ -81,30 +84,52 @@ export default function HostingPage() {
         }
     };
 
-    const handleCreateProject = async (e: React.FormEvent) => {
+    const handleOpenCreateModal = () => {
+        setIsEditing(false);
+        setEditingId(null);
+        setNewProject({
+            project_name: '',
+            github_repo: '',
+            pat_token: '',
+            domain_name: '',
+            deploy_path: '/tmp/hosting/'
+        });
+        setShowCreateModal(true);
+    };
+
+    const handleOpenEditModal = (project: Project) => {
+        setIsEditing(true);
+        setEditingId(project.id);
+        setNewProject({
+            project_name: project.project_name,
+            github_repo: project.github_repo,
+            pat_token: '***', // Mask token for security, handle in backend
+            domain_name: project.domain_name,
+            deploy_path: project.deploy_path
+        });
+        setShowCreateModal(true);
+    };
+
+    const handleSaveProject = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const method = isEditing ? 'PUT' : 'POST';
+            const body = isEditing ? { ...newProject, id: editingId } : newProject;
+
             const res = await fetch('/api/hosting', {
-                method: 'POST',
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newProject)
+                body: JSON.stringify(body)
             });
 
             if (res.ok) {
                 setShowCreateModal(false);
                 fetchProjects();
-                setNewProject({
-                    project_name: '',
-                    github_repo: '',
-                    pat_token: '',
-                    domain_name: '',
-                    deploy_path: '/tmp/hosting/'
-                });
             } else {
                 const data = await res.json();
-                alert(data.error || 'Failed to create');
+                alert(data.error || 'Failed to save project');
             }
-        } catch {
+        } catch (error) {
             alert('An error occurred');
         }
     };
@@ -127,9 +152,8 @@ export default function HostingPage() {
         setLoadingReleases(true);
 
         try {
-            // Fetch PAT token securely via another hidden API or get from local response if we sent it
-            // For now, assume public repo for simple preview
-            const res = await fetch(`/api/hosting?action=releases&repo=${project.github_repo}`);
+            // Fetch releases via backend API. Backend will look up PAT from SQLite using projectId automatically.
+            const res = await fetch(`/api/hosting?action=releases&repo=${project.github_repo}&projectId=${project.id}`);
             const data = await res.json();
 
             if (res.ok) {
@@ -211,7 +235,7 @@ export default function HostingPage() {
                             {nginxStatus}
                         </span>
                     </div>
-                    <Button onClick={() => setShowCreateModal(true)}>
+                    <Button onClick={handleOpenCreateModal}>
                         <Plus className="w-4 h-4 mr-2" /> New Project
                     </Button>
                 </div>
@@ -268,18 +292,21 @@ export default function HostingPage() {
                                 <CardTitle className="flex justify-between items-center">
                                     <span className="truncate pr-4">{p.project_name}</span>
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="h-8 w-8 text-destructive">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(p)} className="h-8 w-8 text-blue-400 opacity-70 hover:opacity-100">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="h-8 w-8 text-destructive opacity-70 hover:opacity-100">
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     </div>
                                 </CardTitle>
                                 <div className="space-y-2 mt-4 text-sm">
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Github className="w-4 h-4" />
+                                    <div className="flex items-center gap-2 text-muted-foreground break-all">
+                                        <Github className="w-4 h-4 min-w-[16px]" />
                                         {p.github_repo}
                                     </div>
-                                    <div className="flex items-center gap-2 text-primary">
-                                        <Globe className="w-4 h-4" />
+                                    <div className="flex items-center gap-2 text-primary break-all">
+                                        <Globe className="w-4 h-4 min-w-[16px]" />
                                         <a href={`http://${p.domain_name}`} target="_blank" rel="noreferrer" className="hover:underline">
                                             {p.domain_name}
                                         </a>
@@ -302,18 +329,18 @@ export default function HostingPage() {
                 </div>
             )}
 
-            {/* Create Modal */}
+            {/* Create / Edit Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <Card className="w-full max-w-lg">
                         <CardHeader>
-                            <CardTitle>Create Hosting Project</CardTitle>
+                            <CardTitle>{isEditing ? 'Edit Hosting Project' : 'Create Hosting Project'}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleCreateProject} className="space-y-4">
+                            <form onSubmit={handleSaveProject} className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Project Name</label>
-                                    <Input required value={newProject.project_name} onChange={e => setNewProject({ ...newProject, project_name: e.target.value })} placeholder="my-awesome-site" />
+                                    <Input required disabled={isEditing} value={newProject.project_name} onChange={e => setNewProject({ ...newProject, project_name: e.target.value })} placeholder="my-awesome-site" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">GitHub Repo <span className="text-muted-foreground text-xs">(owner/repo)</span></label>
@@ -321,7 +348,7 @@ export default function HostingPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Personal Access Token <span className="text-muted-foreground text-xs">(Optional for private repos)</span></label>
-                                    <Input type="password" value={newProject.pat_token} onChange={e => setNewProject({ ...newProject, pat_token: e.target.value })} placeholder="ghp_..." />
+                                    <Input type={isEditing && newProject.pat_token === '***' ? 'text' : 'password'} value={newProject.pat_token} onChange={e => setNewProject({ ...newProject, pat_token: e.target.value })} placeholder={isEditing ? "(Leave unchanged to keep current token)" : "ghp_..."} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
