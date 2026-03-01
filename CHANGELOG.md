@@ -1,3 +1,17 @@
+
+## [2.1.4] - 2026-03-02
+
+### 🔒 Security Hotfixes
+- **Hosting Deployer**: Resolved a severe vulnerability where the backend previously fetched the entire Source Code raw tarball (including `.env`) instead of the designated compiled `build.tar.gz` asset.
+- **Asset Enforcement**: UI and API for Edge Functions and Database deployment are now rigidly restricted to only recognize `.zip` release artifacts to prevent accidental execution of mismatched tarballs.
+
+### ✨ Features
+- **Automated Deploy Setup**: The Web Hosting automated deployment now utilizes `rm -rf` on the destination directory before extracting to prevent orphaned garbage files, and actively applies `chgrp www-data` + `chmod g+rx` bindings, drastically reducing manual CLI overhead.
+
+### 📚 Documentation
+- **GitHub Actions Guide**: Expanded the `README.md` (Section 7) to include a full step-by-step example on how to properly compress and attach `build.tar.gz` artifacts in CI/CD pipelines.
+- **Refined Permission Warning**: Clarified NGINX directory execution bindings for Parent Directories on the UI panel.
+
 # Changelog
 
 ## [2.1.3] - $(date +'%Y-%m-%d')

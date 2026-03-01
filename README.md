@@ -1,7 +1,7 @@
 # Supabase Manager 🚀
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-2.1.3-orange.svg)
+![Version](https://img.shields.io/badge/version-2.1.4-orange.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15.0.0-black?logo=next.js)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-38B2AC?logo=tailwind-css)
 
