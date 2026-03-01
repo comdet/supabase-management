@@ -128,11 +128,57 @@ If you don't need a domain and just want to access the manager temporarily from 
 If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you no longer need to grant dangerous `sudoers` privileges.
 For maximum security, the system will download and extract the repository code into your specified root directory. It will then generate an NGINX `.conf` file in `/tmp/` and display a UI Modal containing the exact safe CLI commands you must run manually as `sudo` to enable the site.
 
+#### 🔒 Security Notice & Preparation
 > [!CAUTION]
 > **NEVER Deploy directly from Source Code if your repository contains sensitive files (`.env`, config secrets).**
 > By default, GitHub's Source Code Tarball includes *everything* in your branch. If you deploy it directly to a public NGINX folder, your `.env` files may become publicly readable!
 > 
-> **Best Practice:** You must use GitHub Actions (`release.yml`) to compile your application and package only the public-facing files (e.g., the `dist/` or `out/` folder) into an asset named `build.tar.gz`. The Hosting Dashboard will automatically detect `.tar.gz` and `.zip` Assets inside your releases and prioritize them over raw source code to keep your server secure!
+> **Best Practice:** You must use GitHub Actions to compile your application and package only the public-facing files (e.g., the `dist/` or `out/` folder) into an asset named `build.tar.gz`. The Hosting Dashboard will automatically detect `.tar.gz` and `.zip` Assets inside your releases and prioritize them over raw source code to keep your server secure!
+
+#### 🛠️ GitHub Actions Deployment Guide
+Create a `.github/workflows/release.yml` file in your frontend repository to automatically compile and attach a `build.tar.gz` artifact whenever you publish a new Release tag:
+
+```yaml
+name: Release Setup
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Trigger when pushing a tag matching v1.0.0, etc.
+
+permissions:
+  contents: write # Required for creating releases and uploading assets
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ... (Setup Node.js & Install Dependencies here) ...
+
+      - name: Build Frontend Application
+        run: npm run build
+
+      - name: Package Frontend Build
+        run: |
+          # Package the 'dist' (or 'out') folder into a tarball
+          tar -czvf build.tar.gz dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build.tar.gz
+          generate_release_notes: true
+```
+
+Once this workflow runs successfully, your GitHub Release will contain the `build.tar.gz` file. 
+You can then open the **Auto Web Hosting Dashboard**, click **Deploy**, and select the **Compiled Asset** to securely extract only the production code onto your server.
+
+---
 
 ### ⚡ 8. Edge Functions Deployment Guide
 To utilize the **Edge Functions Deployer**, your GitHub repository must be configured to compile and attach your Supabase functions as a `.zip` artifact directly into GitHub Releases.
