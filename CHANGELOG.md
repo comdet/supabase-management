@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.3] - $(date +'%Y-%m-%d')
+
+### 🐛 Bug Fixes & Refactoring
+- **NGINX Auto-Config Guide**: Updated the deployment instructions in the Hosting dashboard. Simple `chown` was insufficient for deploy paths located inside a user's `/home/` directory (causing 403 Forbidden errors). The guide now correctly advises adding the `www-data` user to the deployment group (`usermod -aG`) and granting group execute (`chmod g+x`) permissions so NGINX can traverse the home directory securely.
+
 ## [2.1.2] - $(date +'%Y-%m-%d')
 
 ### ✨ Features & Enhancements

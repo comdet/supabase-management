@@ -264,14 +264,24 @@ export default function HostingPage() {
 }`}
                         </pre>
                     </div>
-                    <p className="mt-2 text-amber-500 flex items-center gap-1.5 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        <strong>Important:</strong> Ensure the user running this dashboard has read/write permissions to your chosen
-                    </p>
-                    <p className="mt-2 text-amber-500 flex items-center gap-1.5 mt-4 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        <strong>Important:</strong><i>Deploy Path</i>. By default, NGINX runs as `www-data`. You may need to adjust folder permissions (`chown -R www-data:www-data /your/path`) after deployment for public access.
-                    </p>
+                    <div className="mt-4 text-amber-500 bg-amber-500/10 p-4 rounded-lg border border-amber-500/20 space-y-2">
+                        <div className="flex items-center gap-1.5 font-bold">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            Important: Directory Permissions (403 Forbidden Error)
+                        </div>
+                        <p className="text-sm text-amber-500/90">
+                            By default, NGINX runs as <code>www-data</code>. If your Deploy Path is inside a user's home directory (e.g., <code>/home/user/project</code>), NGINX will not be able to read it and will throw a 403 error.
+                        </p>
+                        <p className="text-sm text-amber-500/90">
+                            To fix this, you must add <code>www-data</code> to your user's group and grant execute (+x) permissions to the directory path so NGINX can traverse it:
+                        </p>
+                        <pre className="bg-black/50 p-3 rounded text-xs font-mono overflow-x-auto border border-amber-500/20 mt-2 text-amber-400">
+                            {`sudo usermod -aG your_user www-data
+sudo chmod g+x /home/your_user
+sudo chmod g+x /home/your_user/your_project
+sudo systemctl restart nginx`}
+                        </pre>
+                    </div>
                 </div>
             </div>
 
