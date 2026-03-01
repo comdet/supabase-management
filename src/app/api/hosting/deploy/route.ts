@@ -85,18 +85,28 @@ export async function POST(req: NextRequest) {
         // We use `--strip-components=1` to drop that upper layer and lay it flat inside our extractDir
         await execAsync(`tar -xzf ${tmpFile} -C ${extractDir} --strip-components=1`);
 
-        // 4. Ensure destination exists
-        if (!fs.existsSync(absoluteDeployPath)) {
-            fs.mkdirSync(absoluteDeployPath, { recursive: true });
+        // 5. Clean destination and move files (avoid overlapping garbage files)
+        try {
+            await execAsync(`rm -rf ${absoluteDeployPath}/*`);
+        } catch (e) {
+            // Ignore if empty
         }
-
-        // 5. Move files (we use cp instead of mv to handle overlaps safely)
         await execAsync(`cp -R ${extractDir}/* ${absoluteDeployPath}/`);
 
-        // 6. Clean up temp files
+        // 6. Attempt to set NGINX permissions (www-data group read/execute)
+        try {
+            // Give group ownership to www-data (the typical nginx user on Ubuntu/Debian)
+            await execAsync(`chgrp -R www-data ${absoluteDeployPath}`);
+            // Ensure group has read and execute permissions (so NGINX can serve the files and traverse dirs)
+            await execAsync(`chmod -R g+rx ${absoluteDeployPath}`);
+        } catch (permError) {
+            console.warn('Could not set www-data permissions automatically. This is normal on non-Linux systems or if www-data group is missing:', permError);
+        }
+
+        // 7. Clean up temp files
         await execAsync(`rm -rf ${tmpFile} ${extractDir}`);
 
-        // 7. Update database record
+        // 8. Update database record
         await dbRun('UPDATE hosting_projects SET current_version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [version, id]);
 
         return NextResponse.json({
