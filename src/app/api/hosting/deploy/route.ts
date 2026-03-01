@@ -12,10 +12,10 @@ const execAsync = util.promisify(exec);
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { id, tarball_url, version } = body;
+        const { id, tarball_url, asset_url, version } = body;
 
-        if (!id || !tarball_url || !version) {
-            return NextResponse.json({ error: 'Project ID, tarball_url, and version are required' }, { status: 400 });
+        if (!id || (!tarball_url && !asset_url) || !version) {
+            return NextResponse.json({ error: 'Project ID, asset_url (or tarball_url), and version are required' }, { status: 400 });
         }
 
         const project = await dbGet('SELECT * FROM hosting_projects WHERE id = ?', [id]);
@@ -42,11 +42,12 @@ export async function POST(req: NextRequest) {
 
         // 2. Download from GitHub
         const headers: any = {
-            'Accept': 'application/vnd.github.v3.raw',
+            'Accept': asset_url ? 'application/octet-stream' : 'application/vnd.github.v3.raw',
             'User-Agent': 'Supabase-Manager-App'
         };
 
         if (pat_token) {
+            // Note: API doc says use `Authorization: Bearer <token>` for Assets
             headers['Authorization'] = `token ${pat_token}`;
         }
 
@@ -55,11 +56,14 @@ export async function POST(req: NextRequest) {
         }
 
         try {
+            const downloadUrl = asset_url || tarball_url;
+            console.log(`Downloading target from: ${downloadUrl}`);
             const response = await axios({
                 method: 'get',
-                url: tarball_url,
+                url: downloadUrl,
                 responseType: 'stream',
-                headers: headers
+                headers: headers,
+                maxRedirects: 10 // GitHub API redirects to S3 temporary URLs for assets
             });
 
             const writer = fs.createWriteStream(tmpFile);

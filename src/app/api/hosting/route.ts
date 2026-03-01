@@ -76,13 +76,19 @@ export async function GET(req: NextRequest) {
                 // Fetch releases
                 const response = await axios.get(`https://api.github.com/repos/${repo}/releases`, { headers });
 
-                // Map only what we need
+                // Map only what we need, grab assets!
                 const releases = response.data.map((r: any) => ({
                     id: r.id,
                     name: r.name || r.tag_name,
                     tag_name: r.tag_name,
                     published_at: r.published_at,
-                    tarball_url: r.tarball_url,
+                    assets: r.assets ? r.assets.map((a: any) => ({
+                        id: a.id,
+                        name: a.name,
+                        url: a.url, // We must use 'Accept: application/octet-stream' to download this later
+                        size: a.size,
+                    })) : [],
+                    tarball_url: r.tarball_url, // Keep as absolute fallback only if strictly needed
                     body: r.body
                 }));
 
@@ -99,6 +105,7 @@ export async function GET(req: NextRequest) {
                             name: t.name,
                             tag_name: t.name,
                             published_at: null, // Tags endpoint doesn't return date directly
+                            assets: [], // Tags don't have built assets
                             tarball_url: t.tarball_url,
                             body: 'Tag commit ' + t.commit.sha.substring(0, 7)
                         }));

@@ -6,11 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Github, Globe, Server, RefreshCw, AlertCircle } from "lucide-react";
 
+interface Asset {
+    id: number;
+    name: string;
+    url: string;
+    size: number;
+}
+
 interface Release {
     id: number;
     name: string;
     published_at: string;
     tarball_url: string;
+    assets: Asset[];
 }
 
 interface Project {
@@ -168,7 +176,7 @@ export default function HostingPage() {
         }
     };
 
-    const handleDeploy = async (release: Release) => {
+    const handleDeploy = async (release: Release, assetUrl?: string) => {
         if (!selectedProject) return;
 
         if (!confirm(`Deploy version ${release.name} to ${selectedProject.domain_name}?`)) return;
@@ -181,6 +189,7 @@ export default function HostingPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     id: selectedProject.id,
+                    asset_url: assetUrl || null,
                     tarball_url: release.tarball_url,
                     version: release.name
                 })
@@ -404,18 +413,52 @@ sudo systemctl restart nginx`}
                             ) : (
                                 <div className="space-y-3">
                                     {releases.map(r => (
-                                        <div key={r.id} className="flex justify-between items-center p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
-                                            <div>
-                                                <div className="font-bold text-lg">{r.name}</div>
-                                                {r.published_at && <div className="text-xs text-muted-foreground mt-1">Published: {new Date(r.published_at).toLocaleString()}</div>}
+                                        <div key={r.id} className="flex flex-col p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <div className="font-bold text-lg">{r.name}</div>
+                                                    {r.published_at && <div className="text-xs text-muted-foreground mt-1">Published: {new Date(r.published_at).toLocaleString()}</div>}
+                                                </div>
                                             </div>
-                                            <Button
-                                                disabled={deploying}
-                                                onClick={() => handleDeploy(r)}
-                                                variant={selectedProject.current_version === r.name ? "outline" : "default"}
-                                            >
-                                                {deploying ? 'Deploying...' : selectedProject.current_version === r.name ? 'Redeploy' : 'Deploy This Version'}
-                                            </Button>
+
+                                            {/* Show Assets if any, otherwise fallback to source code deploy */}
+                                            {r.assets && r.assets.length > 0 ? (
+                                                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                                                    <div className="text-xs text-muted-foreground font-medium mb-2">Compiled Assets (Recommended)</div>
+                                                    {r.assets.map(asset => (
+                                                        <div key={asset.id} className="flex justify-between items-center bg-secondary/30 p-2 rounded text-sm">
+                                                            <div className="flex items-center gap-2">
+                                                                <Server className="w-4 h-4 text-emerald-500" />
+                                                                <span className="font-mono">{asset.name}</span>
+                                                                <span className="text-xs text-muted-foreground">({(asset.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                                            </div>
+                                                            <Button
+                                                                size="sm"
+                                                                disabled={deploying}
+                                                                onClick={() => handleDeploy(r, asset.url)}
+                                                                variant={selectedProject.current_version === r.name && asset.name.includes('build') ? "outline" : "default"}
+                                                            >
+                                                                {deploying ? 'Deploying...' : 'Deploy Asset'}
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="mt-4 flex justify-between items-center bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                                                    <div className="text-sm text-red-400">
+                                                        <AlertCircle className="w-4 h-4 inline mr-2 text-red-500" />
+                                                        No build assets found. Deploying from Source Code.
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        disabled={deploying}
+                                                        onClick={() => handleDeploy(r, undefined)}
+                                                        variant="destructive"
+                                                    >
+                                                        {deploying ? 'Deploying...' : 'Deploy Source Code'}
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

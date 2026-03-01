@@ -128,7 +128,11 @@ If you don't need a domain and just want to access the manager temporarily from 
 If you want to use the **Auto Web Hosting** feature (deploying sites directly from GitHub with automatic NGINX configuration), you no longer need to grant dangerous `sudoers` privileges.
 For maximum security, the system will download and extract the repository code into your specified root directory. It will then generate an NGINX `.conf` file in `/tmp/` and display a UI Modal containing the exact safe CLI commands you must run manually as `sudo` to enable the site.
 
----
+> [!CAUTION]
+> **NEVER Deploy directly from Source Code if your repository contains sensitive files (`.env`, config secrets).**
+> By default, GitHub's Source Code Tarball includes *everything* in your branch. If you deploy it directly to a public NGINX folder, your `.env` files may become publicly readable!
+> 
+> **Best Practice:** You must use GitHub Actions (`release.yml`) to compile your application and package only the public-facing files (e.g., the `dist/` or `out/` folder) into an asset named `build.tar.gz`. The Hosting Dashboard will automatically detect `.tar.gz` and `.zip` Assets inside your releases and prioritize them over raw source code to keep your server secure!
 
 ### ⚡ 8. Edge Functions Deployment Guide
 To utilize the **Edge Functions Deployer**, your GitHub repository must be configured to compile and attach your Supabase functions as a `.zip` artifact directly into GitHub Releases.
