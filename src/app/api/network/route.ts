@@ -56,9 +56,28 @@ export async function GET() {
             }));
         }).filter(p => p.publicPort);
 
+        // Get Firewall Status
+        let firewallStatus = 'Unknown firewall status';
+        try {
+            if (isMac) {
+                const { stdout } = await execAsync('/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate');
+                firewallStatus = stdout.trim();
+            } else if (os.platform() === 'win32') {
+                const { stdout } = await execAsync('netsh advfirewall show allprofiles state');
+                firewallStatus = stdout.trim();
+            } else {
+                // Assume Linux / Ubuntu
+                const { stdout } = await execAsync('ufw status');
+                firewallStatus = stdout.trim();
+            }
+        } catch (e: any) {
+            firewallStatus = `Firewall status unavailable: ${e.message}\n(May require sudo/admin privileges)`;
+        }
+
         return NextResponse.json({
             host: hostPorts,
-            docker: dockerPorts
+            docker: dockerPorts,
+            firewall: firewallStatus
         });
 
     } catch (error: any) {

@@ -20,6 +20,7 @@ type DockerPortInfo = {
 type NetworkData = {
     host: PortInfo[];
     docker: DockerPortInfo[];
+    firewall: string;
 };
 
 export default function NetworkMonitorPage() {
@@ -39,7 +40,7 @@ export default function NetworkMonitorPage() {
                 index === self.findIndex(t => t.port === p.port && t.proto === p.proto)
             ) || [];
 
-            setData({ host: uniqueHost, docker: json.docker || [] });
+            setData({ host: uniqueHost, docker: json.docker || [], firewall: json.firewall || 'Unknown Firewall Status' });
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -78,9 +79,36 @@ export default function NetworkMonitorPage() {
 
             {error && (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-lg flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5" /> {error}
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <span className="break-all">{error}</span>
                 </div>
             )}
+
+            {/* Firewall Status */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                <div className="p-5 border-b border-neutral-800 bg-neutral-900/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-500/10 rounded-lg">
+                            <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white">System Firewall Status</h2>
+                            <p className="text-xs text-neutral-400">Current active rules and global state</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-5 bg-black">
+                    {loading && !data ? (
+                        <div className="text-neutral-500 flex items-center gap-2 text-sm justify-center py-4">
+                            <RefreshCw className="w-5 h-5 animate-spin" /> Querying firewall rules...
+                        </div>
+                    ) : (
+                        <pre className="text-xs font-mono text-neutral-300 whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-auto">
+                            {data?.firewall || 'No firewall information returned.'}
+                        </pre>
+                    )}
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Host Listening Ports */}
