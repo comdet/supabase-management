@@ -63,26 +63,18 @@ export async function POST(req: NextRequest) {
         if (!assetUrl) return NextResponse.json({ error: 'Asset API URL is required' }, { status: 400 });
         if (!projectPath) return NextResponse.json({ error: 'Supabase Project Path not configured. Go to Settings to configure.' }, { status: 400 });
 
-        const headers: Record<string, string> = {
-            'Accept': 'application/octet-stream',
-            'User-Agent': 'Supabase-Manager'
-        };
-
-        if (pat) {
-            headers['Authorization'] = `token ${pat}`;
-        }
-
-        // 1. Download asset
-        const response = await fetch(assetUrl, { headers });
-        if (!response.ok) {
-            return NextResponse.json({ error: `GitHub Asset Download returned ${response.status}: ${response.statusText}` }, { status: response.status });
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
         const tmpFilePath = path.join(os.tmpdir(), `functions_${Date.now()}.zip`);
-        fs.writeFileSync(tmpFilePath, buffer);
+
+        // 1. Download asset carefully using curl (prevents Authorization header leak on S3 redirect)
+        let curlCmd = `curl -L -s -w "%{http_code}" -o "${tmpFilePath}" "${assetUrl}"`;
+        if (pat) {
+            curlCmd = `curl -L -s -w "%{http_code}" -H "Authorization: token ${pat}" -H "Accept: application/octet-stream" -o "${tmpFilePath}" "${assetUrl}"`;
+        }
+
+        const { stdout: curlStatus } = await execAsync(curlCmd);
+        if (curlStatus !== '200' && curlStatus !== '201') {
+            return NextResponse.json({ error: `GitHub Asset Download returned ${curlStatus}: Unauthorized or Not Found` }, { status: 400 });
+        }
 
         // 2. Extract asset to Supabase volumes/functions
         const functionsVolPath = path.join(projectPath, 'volumes', 'functions');
