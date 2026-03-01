@@ -58,7 +58,9 @@ export default function DatabasePage() {
             if (res.data.releases?.length > 0) {
                 const firstRelease = res.data.releases[0];
                 if (firstRelease.assets?.length > 0) {
-                    setSelectedAssetUrl(firstRelease.assets[0].url);
+                    // Prioritize database.zip as per README guide
+                    const dbAsset = firstRelease.assets.find((a: any) => a.name === 'database.zip' || a.name.endsWith('.zip'));
+                    setSelectedAssetUrl(dbAsset ? dbAsset.url : firstRelease.assets[0].url);
                 }
             }
 
@@ -251,11 +253,13 @@ export default function DatabasePage() {
                                             <option value="">-- Choose an Artifact --</option>
                                             {releases.map((release) => (
                                                 <optgroup key={release.id} label={`${release.name || release.tag_name} (${new Date(release.published_at).toLocaleDateString()})`}>
-                                                    {release.assets && Array.isArray(release.assets) && release.assets.map((asset) => (
-                                                        <option key={asset.id} value={asset.url}>
-                                                            {asset.name}
-                                                        </option>
-                                                    ))}
+                                                    {release.assets && Array.isArray(release.assets) && release.assets
+                                                        .filter((asset) => asset.name.endsWith('.zip')) // Only allow Zip files for database
+                                                        .map((asset) => (
+                                                            <option key={asset.id} value={asset.url}>
+                                                                {asset.name}
+                                                            </option>
+                                                        ))}
                                                 </optgroup>
                                             ))}
                                         </select>
