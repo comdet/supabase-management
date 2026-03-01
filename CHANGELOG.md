@@ -1,4 +1,11 @@
 
+## [2.1.5] - 2026-03-02
+
+### 🐛 Bug Fixes & Refactoring
+- **Functions & Database Deployer**: Standardized the deployment download mechanism to use `axios` instead of `fetch/curl`. This ensures consistent handling of GitHub API redirects (302) to AWS S3, by properly dropping the `Authorization` header and preventing `400/401 Unauthorized` errors.
+- **Functions Deploy Key**: Fixed a severe logical key bug where Edge Functions deployer queried `SUPABASE_FUNCTIONS_PAT` instead of the global `GITHUB_ARTIFACTS_PAT` from the SQLite config, resulting in empty tokens.
+- **Hosting Deployer Resiliency**: Restored a missing fail-safe block (`mkdirSync`) that caused deployments to crash with `No such file or directory` if the user manually wiped out their entire runtime `project` folder using `rm -rf`.
+
 ## [2.1.4] - 2026-03-02
 
 ### 🔒 Security Hotfixes
