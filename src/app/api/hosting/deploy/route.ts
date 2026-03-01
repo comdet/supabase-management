@@ -85,11 +85,15 @@ export async function POST(req: NextRequest) {
         // We use `--strip-components=1` to drop that upper layer and lay it flat inside our extractDir
         await execAsync(`tar -xzf ${tmpFile} -C ${extractDir} --strip-components=1`);
 
-        // 5. Clean destination and move files (avoid overlapping garbage files)
-        try {
-            await execAsync(`rm -rf ${absoluteDeployPath}/*`);
-        } catch (e) {
-            // Ignore if empty
+        // 5. Ensure destination exists and is clean (avoid overlapping garbage files)
+        if (!fs.existsSync(absoluteDeployPath)) {
+            fs.mkdirSync(absoluteDeployPath, { recursive: true });
+        } else {
+            try {
+                await execAsync(`rm -rf ${absoluteDeployPath}/*`);
+            } catch (e) {
+                // Ignore if empty
+            }
         }
         await execAsync(`cp -R ${extractDir}/* ${absoluteDeployPath}/`);
 
