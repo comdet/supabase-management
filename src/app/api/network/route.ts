@@ -3,6 +3,7 @@ import docker from '@/lib/docker';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
+import fs from 'fs';
 
 const execAsync = promisify(exec);
 
@@ -67,11 +68,52 @@ export async function GET() {
                 firewallStatus = stdout.trim();
             } else {
                 // Assume Linux / Ubuntu
-                const { stdout } = await execAsync('ufw status');
-                firewallStatus = stdout.trim();
+                try {
+                    // Try without sudo first (in case running as root)
+                    const { stdout } = await execAsync('ufw status');
+                    firewallStatus = stdout.trim();
+                } catch (err: unknown) {
+                    try {
+                        // Try reading the configuration file directly as a fallback
+                        if (fs.existsSync('/etc/ufw/ufw.conf')) {
+                            const conf = fs.readFileSync('/etc/ufw/ufw.conf', 'utf8');
+                            const isEnabled = conf.includes('ENABLED=yes');
+
+                            let rulesText = '';
+                            try {
+                                if (fs.existsSync('/etc/ufw/user.rules')) {
+                                    const rulesFile = fs.readFileSync('/etc/ufw/user.rules', 'utf8');
+                                    const matches = [...rulesFile.matchAll(/### tuple ### allow (tcp|udp) (\d+) 0\.0\.0\.0\/0 any 0\.0\.0\.0\/0 in/g)];
+                                    if (matches.length > 0) {
+                                        rulesText = '\n\nActive Rules (IPv4):\n' + matches.map(m => `ALLOW ${m[2]}/${m[1]} (Anywhere)`).join('\n');
+                                    } else {
+                                        // Try regex for alternative formats
+                                        const altMatches = [...rulesFile.matchAll(/-A ufw-user-input -p (tcp|udp) --dport (\d+) -j ACCEPT/g)];
+                                        if (altMatches.length > 0) {
+                                            rulesText = '\n\nOpen Ports (IPv4):\n' + altMatches.map(m => `ALLOW ${m[2]}/${m[1]}`).join('\n');
+                                        } else {
+                                            rulesText = '\n\nNo explicitly open ports found or unable to parse rules.';
+                                        }
+                                    }
+                                }
+                            } catch (ruleErr) {
+                                rulesText = '\n\n[Permission Denied: Cannot read /etc/ufw/user.rules to show exact ports]';
+                            }
+
+                            firewallStatus = `Status: ${isEnabled ? 'active' : 'inactive'} (Basic check)${rulesText}\n\n⚠️ Full rules hidden: Node process lacks sudo privileges.\nTo view full rules securely, run this in terminal:\n  echo "$(whoami) ALL=(ALL) NOPASSWD: /usr/sbin/ufw status" | sudo tee /etc/sudoers.d/nodejs-ufw`;
+                        } else {
+                            firewallStatus = `Error: You need to be root to run this script. (Permission Denied)\n\nTo view full firewall rules, you must either:\n1. Run the Node app as root\n2. Grant NOPASSWD sudo access for 'ufw status'`;
+                        }
+                    } catch (fallbackErr: unknown) {
+                        firewallStatus = `Firewall status unavailable: Permission Denied\n(Requires sudo/admin privileges)`;
+                    }
+                }
             }
-        } catch (e: any) {
-            firewallStatus = `Firewall status unavailable: ${e.message}\n(May require sudo/admin privileges)`;
+        } catch (globalErr: unknown) {
+            // Unlikely to hit this since inner blocks have their own try-catch now,
+            // but just in case of unforeseen errors in the OS branching itself.
+            const error = globalErr as Error;
+            firewallStatus = `Firewall status check failed: ${error.message}`;
         }
 
         return NextResponse.json({
@@ -80,8 +122,9 @@ export async function GET() {
             firewall: firewallStatus
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Port scan error:', error);
-        return NextResponse.json({ error: error.message || 'Failed to list ports' }, { status: 500 });
+        const err = error as Error;
+        return NextResponse.json({ error: err.message || 'Failed to list ports' }, { status: 500 });
     }
 }

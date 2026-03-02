@@ -1,7 +1,7 @@
 # Supabase Manager 🚀
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-2.1.5-orange.svg)
+![Version](https://img.shields.io/badge/version-2.1.6-orange.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15.0.0-black?logo=next.js)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-38B2AC?logo=tailwind-css)
 
@@ -242,9 +242,9 @@ Your GitHub Actions or Release workflow should `zip` the contents of your `supab
 **Setup in Dashboard:**
 1. Configure your API token and Repo in **System Settings** (It shares the same settings as Edge Functions).
 2. Navigate to **Hosting & Projects -> Database Tools**.
-3. Select an Artifact. The system will download it, extract the SQL files, and query the internal `supabase_migrations.schema_migrations` table.
-4. It will compare the files and indicate which are `Applied` vs `Pending`.
-5. Click **Migrate All Pending** or run your **Seed**! All SQL executes safely over Docker internal copying (`docker cp`) preventing encoding corruption.
+3. Select an Artifact. The system filters for `database.zip` automatically, preventing accidental deployments of function zips.
+4. It natively provisions the `supabase_migrations.schema_migrations` tracking schema (replicating `supabase db push` behavior), compares the extracted files, and visually flags which are `Applied` vs `Pending`.
+5. Click **Migrate All Pending** or run your **Seed** (conditionally enabled if `seed.sql` exists in the zip)! All SQL executes safely over internal Docker copying (`docker cp`).
 
 ---
 

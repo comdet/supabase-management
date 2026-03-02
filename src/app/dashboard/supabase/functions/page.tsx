@@ -37,9 +37,12 @@ export default function EdgeFunctionsPage() {
                 if (resFunc.data.releases?.length > 0) {
                     const firstRelease = resFunc.data.releases[0];
                     if (firstRelease.assets?.length > 0) {
-                        // Prioritize functions.zip as per README guide
-                        const funcAsset = firstRelease.assets.find((a: any) => a.name === 'functions.zip' || a.name.endsWith('.zip'));
-                        setSelectedAssetUrl(funcAsset ? funcAsset.url : firstRelease.assets[0].url);
+                        // Prioritize functions.zip, but explicitly ignore database zips
+                        const funcAsset = firstRelease.assets.find((a: any) =>
+                            a.name.toLowerCase() === 'functions.zip' ||
+                            (a.name.endsWith('.zip') && !a.name.toLowerCase().includes('database'))
+                        );
+                        setSelectedAssetUrl(funcAsset ? funcAsset.url : '');
                     }
                 }
             } catch (err: unknown) {
@@ -140,7 +143,7 @@ export default function EdgeFunctionsPage() {
                                             {releases.map((release) => (
                                                 <optgroup key={release.id} label={`${release.name || release.tag_name} (${new Date(release.published_at).toLocaleDateString()})`}>
                                                     {release.assets && Array.isArray(release.assets) && release.assets
-                                                        .filter((asset) => asset.name.endsWith('.zip')) // Only allow Zip files for functions
+                                                        .filter((asset) => asset.name.endsWith('.zip') && !asset.name.toLowerCase().includes('database')) // Prevent database.zip from being deployed to edge-runtime
                                                         .map((asset) => (
                                                             <option key={asset.id} value={asset.url}>
                                                                 {asset.name}

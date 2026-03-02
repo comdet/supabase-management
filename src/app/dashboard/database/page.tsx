@@ -37,6 +37,7 @@ export default function DatabasePage() {
     // Migrations
     const [migrations, setMigrations] = useState<Migration[]>([]);
     const [targetDir, setTargetDir] = useState('');
+    const [hasSeed, setHasSeed] = useState(false);
 
     // Danger Zone
     const [clearConfirmText, setClearConfirmText] = useState('');
@@ -58,9 +59,12 @@ export default function DatabasePage() {
             if (res.data.releases?.length > 0) {
                 const firstRelease = res.data.releases[0];
                 if (firstRelease.assets?.length > 0) {
-                    // Prioritize database.zip as per README guide
-                    const dbAsset = firstRelease.assets.find((a: any) => a.name === 'database.zip' || a.name.endsWith('.zip'));
-                    setSelectedAssetUrl(dbAsset ? dbAsset.url : firstRelease.assets[0].url);
+                    // Prioritize database.zip, but explicitly ignore functions zips
+                    const dbAsset = firstRelease.assets.find((a: ReleaseAsset) =>
+                        a.name.toLowerCase() === 'database.zip' ||
+                        (a.name.endsWith('.zip') && !a.name.toLowerCase().includes('functions'))
+                    );
+                    setSelectedAssetUrl(dbAsset ? dbAsset.url : '');
                 }
             }
 
@@ -79,6 +83,7 @@ export default function DatabasePage() {
             const res = await axios.get('/api/database/migrations');
             setMigrations(res.data.migrations || []);
             setTargetDir(res.data.targetDir || '');
+            setHasSeed(res.data.hasSeed || false);
         } catch (err) {
             console.error('Failed to load migrations list', err);
         }
@@ -254,7 +259,7 @@ export default function DatabasePage() {
                                             {releases.map((release) => (
                                                 <optgroup key={release.id} label={`${release.name || release.tag_name} (${new Date(release.published_at).toLocaleDateString()})`}>
                                                     {release.assets && Array.isArray(release.assets) && release.assets
-                                                        .filter((asset) => asset.name.endsWith('.zip')) // Only allow Zip files for database
+                                                        .filter((asset) => asset.name.endsWith('.zip') && !asset.name.toLowerCase().includes('functions')) // Prevent functions.zip from being deployed as database
                                                         .map((asset) => (
                                                             <option key={asset.id} value={asset.url}>
                                                                 {asset.name}
@@ -393,12 +398,16 @@ export default function DatabasePage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-white">3. Apply Seed Data</h3>
-                                    <p className="text-xs text-neutral-400 mt-1">Injects <code className="text-emerald-400">seed.sql</code> into the database.</p>
+                                    <p className="text-xs mt-1">
+                                        {hasSeed
+                                            ? <span className="text-neutral-400">Injects <code className="text-emerald-400">seed.sql</code> into the database.</span>
+                                            : <span className="text-amber-500/70">No <code className="text-amber-500/70">seed.sql</code> found in artifact.</span>}
+                                    </p>
                                 </div>
                             </div>
                             <button
                                 onClick={handleExecuteSeed}
-                                disabled={actionLoading !== null || !targetDir}
+                                disabled={actionLoading !== null || !targetDir || !hasSeed}
                                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-all disabled:opacity-50"
                             >
                                 {actionLoading === 'seed' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" fill="currentColor" />}

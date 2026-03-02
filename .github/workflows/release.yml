@@ -46,10 +46,15 @@ jobs:
           # Compress to a single tarball
           tar -czf supabase-manager-release.tar.gz -C release_package .
 
+      - name: Extract Release Notes
+        run: |
+          # Extract the topmost release section from CHANGELOG.md to display natively on GitHub
+          awk '/^## \[/ {if (p) exit; p=1} p {print}' CHANGELOG.md > RELEASE_NOTES.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: supabase-manager-release.tar.gz
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

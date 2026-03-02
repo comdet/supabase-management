@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import axios from 'axios';
+import docker from '@/lib/docker';
 
 const execAsync = util.promisify(exec);
 
@@ -120,7 +121,19 @@ export async function POST(req: NextRequest) {
 
         // 3. Restart Edge Runtime
         try {
-            await execAsync(`docker compose restart edge-runtime`, { cwd: projectPath });
+            // Find edge-runtime container using dockerode
+            const containers = await docker.listContainers();
+            const edgeContainerInfo = containers.find(c => c.Names.some(n => n.includes('edge-runtime')));
+
+            if (edgeContainerInfo) {
+                const container = docker.getContainer(edgeContainerInfo.Id);
+                await container.restart();
+                console.log('Successfully restarted edge-runtime container via Docker API');
+            } else {
+                console.warn('Could not find running edge-runtime container to restart.');
+                // Fallback attempt with compose just in case it's stopped completely or name changed drastically
+                await execAsync(`docker compose restart edge-runtime`, { cwd: projectPath });
+            }
         } catch (dockerErr: any) {
             console.error('Docker restart failed:', dockerErr);
             return NextResponse.json({ success: true, message: 'Functions extracted successfully, but failed to restart edge-runtime container automatically. You may need to manually restart it.' });

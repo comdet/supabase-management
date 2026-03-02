@@ -17,6 +17,9 @@ export async function POST(req: Request) {
             CREATE SCHEMA public;
             GRANT ALL ON SCHEMA public TO postgres;
             GRANT ALL ON SCHEMA public TO public;
+
+            -- Also wipe native migration trackers, otherwise the system will assume old migrations are still applied!
+            DROP SCHEMA IF EXISTS supabase_migrations CASCADE;
         `;
 
         await execAsync(`docker exec supabase-db psql -U postgres -d postgres -c "${sql.replace(/\n/g, ' ')}"`);

@@ -14,6 +14,10 @@ export async function GET() {
 
         const targetDir = fs.existsSync(migrationsDirs) ? migrationsDirs : (fs.existsSync(migrationsDirect) ? migrationsDirect : null);
 
+        const seedPath1 = path.join('/tmp', 'database_artifact', 'supabase', 'seed.sql');
+        const seedPath2 = path.join('/tmp', 'database_artifact', 'seed.sql');
+        const hasSeed = fs.existsSync(seedPath1) || fs.existsSync(seedPath2);
+
         let files: { name: string, version: string }[] = [];
 
         if (targetDir) {
@@ -45,7 +49,7 @@ export async function GET() {
             applied: appliedVersions.includes(f.version)
         }));
 
-        return NextResponse.json({ success: true, migrations: mappedFiles, targetDir });
+        return NextResponse.json({ success: true, migrations: mappedFiles, targetDir, hasSeed });
 
     } catch (error: unknown) {
         return NextResponse.json({ error: (error as Error).message, migrations: [] });
@@ -62,6 +66,14 @@ export async function POST(req: Request) {
 
         const results = [];
 
+        // 0. Ensure schema_migrations table exists (Replicating native Supabase CLI 'history.go' logic)
+        try {
+            await execAsync(`docker exec supabase-db psql -U postgres -d postgres -c "SET lock_timeout = '4s'; CREATE SCHEMA IF NOT EXISTS supabase_migrations; CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (version text NOT NULL PRIMARY KEY); ALTER TABLE supabase_migrations.schema_migrations ADD COLUMN IF NOT EXISTS statements text[]; ALTER TABLE supabase_migrations.schema_migrations ADD COLUMN IF NOT EXISTS name text;"`);
+        } catch (err) {
+            console.error('Failed to initialize schema_migrations table natively', err);
+            return NextResponse.json({ error: 'Failed to initialize schema_migrations table natively' }, { status: 500 });
+        }
+
         for (const file of files) {
             const filePath = path.join(targetDir, file.name);
             const containerTmpPath = `/tmp/execute_migration.sql`;
@@ -74,14 +86,13 @@ export async function POST(req: Request) {
             results.push({ name: file.name, output: res.stdout });
 
             // 3. Mark as executed
-            // Note: If using standard Supabase, Supabase CLI usually inserts into schema_migrations itself, BUT since we are executing via psql file, 
-            // the file ITSELF doesn't always insert its version unless explicitly written in the SQL.
-            // Wait, Standard supabase migration files do NOT have the insert statement. The CLI handles it.
-            // So we must manually insert it to keep the state.
+            // Use native UPSERT standard from Supabase CLI history.go
             try {
-                await execAsync(`docker exec supabase-db psql -U postgres -d postgres -c "INSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${file.version}') ON CONFLICT DO NOTHING;"`);
+                // Remove the .sql extension from the name if needed, or keep the whole thing. 
+                // The CLI inserts the base name without .sql sometimes, but we'll insert file.name as the name.
+                await execAsync(`docker exec supabase-db psql -U postgres -d postgres -c "INSERT INTO supabase_migrations.schema_migrations(version, name, statements) VALUES('${file.version}', '${file.name}', null) ON CONFLICT (version) DO UPDATE SET name = EXCLUDED.name, statements = EXCLUDED.statements;"`);
             } catch (err) {
-                console.error('Failed to update schema_migrations for', file.version, err);
+                console.error('Failed to upsert schema_migrations for', file.version, err);
             }
         }
 

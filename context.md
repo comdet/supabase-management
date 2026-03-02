@@ -104,9 +104,9 @@ Consolidates Supabase administration into a unified interface, tracking the base
 
 ### 7. Database Management Module (`/api/database/*` & `/dashboard/database`)
 Provides a graphical and systematic approach to managing Supabase PostgreSQL schema migrations and seeds.
-- **Artifact-Based Migrations**: Instead of scanning host directories randomly, it strictly fetches `database.zip` artifacts defined in GitHub Releases (mirroring the Functions approach). This allows for strict version control tying Database Schema directly to Function releases.
-- **State Comparison**: It automatically joins local SQL filenames extracted from the zip with the live PostgreSQL `supabase_migrations.schema_migrations` system table, visually determining which migrations are "Pending" or already "Applied".
-- **Secure Encoding Execution**: Mitigates nasty Windows Docker Pipe encoding bugs (e.g. Thai character corruption) by exclusively relying on `docker cp` to transit SQL artifacts into the container runtime BEFORE executing them via `psql -f`. Includes Public Schema Dumps and Clear actions.
+- **Artifact-Based Migrations**: Strictly fetches `database.zip` artifacts from GitHub Releases (explicitly filtering out `functions.zip` to prevent user error). This ties Database Schema safely to Function CI releases.
+- **Native State Synchronization**: Replicates the native `supabase db push` orchestration by injecting the original Go implementation's SQL to instantiate and insert records into `supabase_migrations.schema_migrations`, maintaining 100% interoperability with the official Supabase CLI. It automatically compares these states to visually flag "Pending" or "Applied" updates.
+- **Secure Encoding Execution**: Mitigates Windows Docker Pipe encoding bugs (e.g., Thai character corruption) by relying on `docker cp` to transit SQL artifacts. Includes robust "Drop Public Schema" actions that safely wipe the tracking schema alongside the public environment to prevent devastating state desynchronization.
 
 ---
 

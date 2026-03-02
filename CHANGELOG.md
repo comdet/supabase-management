@@ -1,4 +1,15 @@
 
+## [2.1.6] - 2026-03-02
+
+### 🐛 Bug Fixes & Refactoring
+- **Edge Functions Deployer**: Fixed a container restart synchronization bug. The endpoint now uses native `dockerode` instead of `child_process.exec` to reliably restart the `edge-runtime` container regardless of host OS pathing issues.
+- **Database Migrations Tracking**: Resolved a "Pending" UI state desynchronization bug where SQL migrations executed successfully via `psql` without writing to the tracking table. The backend now exactly replicates natively the `supabase db push` orchestration to create `supabase_migrations.schema_migrations` and upsert the applied versions.
+- **Database Wipe Desynchronization**: Dropping the public schema now perfectly drops the `supabase_migrations` tracking schema alongside it to ensure starting from a 100% clean state, eliminating silently ignored fresh migrations.
+- **Artifact Protection**: Added robust ZIP file validation for Edge Functions and Database deploy targets. The UI explicitly filters dropdowns to prevent accidental selections (e.g., executing `functions.zip` inside the Database pg-runtime), and conditionally disables "Run Seed.sql" if no seed is physically bundled.
+
+### ✨ Features & Enhancements
+- **Native Release Notes Delivery**: The internal GitHub Actions automated release pipeline (`release.yml`) will now extract the corresponding release notes from `CHANGELOG.md` completely cleanly allowing seamless, formatted viewing straight from the web GitHub Release page!
+
 ## [2.1.5] - 2026-03-02
 
 ### 🐛 Bug Fixes & Refactoring
