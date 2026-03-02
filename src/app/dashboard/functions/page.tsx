@@ -30,7 +30,7 @@ export default function EdgeFunctionsPage() {
     useEffect(() => {
         const fetchReleases = async () => {
             try {
-                const resFunc = await axios.get('/api/supabase/functions/deploy');
+                const resFunc = await axios.get('/api/functions/deploy');
                 setReleases(resFunc.data.releases || []);
                 setFunctionsRepo(resFunc.data.repo || '');
 
@@ -65,7 +65,7 @@ export default function EdgeFunctionsPage() {
         setMessage({ type: '', text: '', details: '' });
 
         try {
-            const res = await axios.post('/api/supabase/functions/deploy', { assetUrl: selectedAssetUrl });
+            const res = await axios.post('/api/functions/deploy', { assetUrl: selectedAssetUrl });
             if (res.data.success) {
                 showMessage('success', 'Edge Functions deployed successfully!', res.data.message);
             }

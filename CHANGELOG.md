@@ -1,4 +1,9 @@
 
+## [2.2.1] - 2026-03-02
+
+### ⚙️ Stability & Architecture
+- **App Router Restructuring**: Executed a comprehensive flattening of the Next.js `app` directory structure to vastly improve codebase discoverability. Decoupled the Authentication API (`/api/auth-users`) and Edge Functions API (`/api/functions`) from deeply nested domain routes, ensuring a cleaner 1-to-1 mapping with the dashboard user interface and standardizing global router module paths for significantly improved maintainability going forward.
+
 ## [2.2.0] - 2026-03-02
 
 ### ✨ Features & Enhancements

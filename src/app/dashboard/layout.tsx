@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { name: 'Auto Web Hosting', href: '/dashboard/hosting', icon: Globe },
                 { name: 'File Manager', href: '/dashboard/files', icon: FolderHeart },
                 { name: 'Supabase Main', href: '/dashboard/supabase', icon: Database },
-                { name: 'Edge Functions', href: '/dashboard/supabase/functions', icon: Zap },
+                { name: 'Edge Functions', href: '/dashboard/functions', icon: Zap },
                 { name: 'Database Tools', href: '/dashboard/database', icon: HardDrive },
                 { name: 'Authentication', href: '/dashboard/auth', icon: Users },
             ]

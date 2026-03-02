@@ -28,7 +28,7 @@ export default function AuthManagementPage() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/api/database/auth/users');
+            const res = await axios.get('/api/auth-users/users');
             setUsers(res.data.users || []);
             setErrorMsg('');
         } catch (err: any) {
@@ -47,7 +47,7 @@ export default function AuthManagementPage() {
         setActionLoading('create');
         setErrorMsg('');
         try {
-            await axios.post('/api/database/auth/users', {
+            await axios.post('/api/auth-users/users', {
                 email: newEmail,
                 password: newPassword
             });
@@ -68,7 +68,7 @@ export default function AuthManagementPage() {
         setActionLoading(id);
         setErrorMsg('');
         try {
-            await axios.delete(`/api/database/auth/users?id=${id}`);
+            await axios.delete(`/api/auth-users/users?id=${id}`);
             fetchUsers();
         } catch (err: any) {
             setErrorMsg(err.response?.data?.error || 'Failed to delete user');
@@ -86,7 +86,7 @@ export default function AuthManagementPage() {
         setActionLoading('clearAll');
         setErrorMsg('');
         try {
-            await axios.post('/api/database/auth/clear', { confirm: clearConfirmText });
+            await axios.post('/api/auth-users/clear', { confirm: clearConfirmText });
             setClearConfirmText('');
             fetchUsers();
         } catch (err: any) {
