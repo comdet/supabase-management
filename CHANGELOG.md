@@ -1,4 +1,12 @@
 
+## [2.2.0] - 2026-03-02
+
+### ✨ Features & Enhancements
+- **Supabase Authentication Manager**: Introduced a fully-featured Authentication Manager under the `Hosting & Projects` dashboard module. Administrators can now view real-time metrics (Emails, UUIDs, Last Sign In), securely create new users (hashing natively over `gen_salt('bf')` via PostgreSQL `pgcrypto` straight into the `auth.users` schema), carefully delete discrete users, or completely execute a global **"Wipe All Authenticators"** command natively simulating Supabase Studio UI.
+
+### 🐛 Bug Fixes & Refactoring
+- **Secure Integration**: Ensured that the Database Clear Public Schema feature cleanly isolates from `auth.users`, protecting identity components from straying into orphan states natively.
+
 ## [2.1.6] - 2026-03-02
 
 ### 🐛 Bug Fixes & Refactoring
