@@ -1,4 +1,9 @@
 
+## [2.2.2] - 2026-03-02
+
+### 🐛 Bug Fixes & Refactoring
+- **Missing API Routes 404 Hotfix**: Fixed a critical build error in `v2.2.1` where the physical server-side folder relocations (`/api/auth-users` and `/api/functions`) silently failed to commit due to strict Windows filesystem daemon locks holding onto the original paths. The paths have been strictly recopied and synced properly into the repository, resolving all 404 backend errors immediately.
+
 ## [2.2.1] - 2026-03-02
 
 ### ⚙️ Stability & Architecture
