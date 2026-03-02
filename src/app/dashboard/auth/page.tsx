@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Users, Trash2, Plus, AlertOctagon, RefreshCw, Loader2, ShieldAlert } from "lucide-react";
+import { Users, Trash2, Plus, AlertOctagon, RefreshCw, Loader2, ShieldAlert, Search } from "lucide-react";
 
 interface AuthUser {
     id: string;
@@ -25,14 +25,23 @@ export default function AuthManagementPage() {
     // Clear All State
     const [clearConfirmText, setClearConfirmText] = useState('');
 
+    // Search and Pagination State
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 15;
+
     const fetchUsers = async () => {
         setLoading(true);
         try {
             const res = await axios.get('/api/auth-users/users');
             setUsers(res.data.users || []);
+            setCurrentPage(1); // Reset to page 1 on fresh load
             setErrorMsg('');
-        } catch (err: any) {
-            setErrorMsg(err.response?.data?.error || 'Failed to fetch users');
+        } catch (err: unknown) {
+            const error = err as any;
+            setErrorMsg(error.response?.data?.error || 'Failed to fetch users');
         } finally {
             setLoading(false);
         }
@@ -41,6 +50,21 @@ export default function AuthManagementPage() {
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    // Derived Search & Pagination Metrics
+    const filteredUsers = users.filter(user =>
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.id.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+
+    // Reset pagination when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,8 +79,9 @@ export default function AuthManagementPage() {
             setNewEmail('');
             setNewPassword('');
             fetchUsers();
-        } catch (err: any) {
-            setErrorMsg(err.response?.data?.error || 'Failed to create user');
+        } catch (err: unknown) {
+            const error = err as any;
+            setErrorMsg(error.response?.data?.error || 'Failed to create user');
         } finally {
             setActionLoading(null);
         }
@@ -70,8 +95,9 @@ export default function AuthManagementPage() {
         try {
             await axios.delete(`/api/auth-users/users?id=${id}`);
             fetchUsers();
-        } catch (err: any) {
-            setErrorMsg(err.response?.data?.error || 'Failed to delete user');
+        } catch (err: unknown) {
+            const error = err as any;
+            setErrorMsg(error.response?.data?.error || 'Failed to delete user');
         } finally {
             setActionLoading(null);
         }
@@ -89,8 +115,9 @@ export default function AuthManagementPage() {
             await axios.post('/api/auth-users/clear', { confirm: clearConfirmText });
             setClearConfirmText('');
             fetchUsers();
-        } catch (err: any) {
-            setErrorMsg(err.response?.data?.error || 'Failed to clear auth records');
+        } catch (err: unknown) {
+            const error = err as any;
+            setErrorMsg(error.response?.data?.error || 'Failed to clear auth records');
         } finally {
             setActionLoading(null);
         }
@@ -107,6 +134,16 @@ export default function AuthManagementPage() {
                     <p className="text-neutral-400 mt-1">Manage Supabase Native Authentications directly from your Docker environment.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                        <input
+                            type="text"
+                            placeholder="Search email or UUID..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-neutral-900 border border-neutral-800 text-sm text-white rounded-lg pl-9 pr-4 py-2 outline-none focus:border-emerald-500 transition-colors w-64"
+                        />
+                    </div>
                     <button
                         onClick={fetchUsers}
                         className="p-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors border border-neutral-700"
@@ -158,8 +195,14 @@ export default function AuthManagementPage() {
                                         No authentication users found.
                                     </td>
                                 </tr>
+                            ) : paginatedUsers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-neutral-500">
+                                        No users match your search &quot;{searchQuery}&quot;.
+                                    </td>
+                                </tr>
                             ) : (
-                                users.map((user) => (
+                                paginatedUsers.map((user) => (
                                     <tr key={user.id} className="hover:bg-neutral-800/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -193,6 +236,31 @@ export default function AuthManagementPage() {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-6 py-4 bg-neutral-950/50 border-t border-neutral-800">
+                            <span className="text-sm text-neutral-400">
+                                Showing <span className="text-white font-medium">{startIndex + 1}</span> to <span className="text-white font-medium">{Math.min(startIndex + itemsPerPage, filteredUsers.length)}</span> of <span className="text-white font-medium">{filteredUsers.length}</span> users
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300 disabled:opacity-50 hover:bg-neutral-800 transition-colors disabled:hover:bg-neutral-900"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300 disabled:opacity-50 hover:bg-neutral-800 transition-colors disabled:hover:bg-neutral-900"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

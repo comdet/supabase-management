@@ -1,6 +1,6 @@
 {
   "name": "supabase-manager",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "scripts": {
     "dev": "node server.js",

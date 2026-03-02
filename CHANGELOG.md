@@ -1,4 +1,9 @@
 
+## [2.2.4] - 2026-03-02
+
+### ✨ Features & Enhancements
+- **Auth Table UX Overhaul**: Completely upgraded the Authentication Manager table to support massive user databases without freezing the browser. Implemented a robust client-side **Pagination** engine (15 users per page) and a real-time **Smart Search Bar** allowing administrators to instantly filter authentication records by either Email or UUID.
+
 ## [2.2.3] - 2026-03-02
 
 ### 🐛 Bug Fixes & Refactoring
