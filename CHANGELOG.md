@@ -1,4 +1,10 @@
 
+## [2.2.5] - 2026-03-02
+
+### 🐛 Bug Fixes & Refactoring
+- **Database Clear Stability**: Added `.trim()` to SQL execution string to prevent potential whitespace issues in `docker exec` shells.
+- **Cleanup**: Removed temporary repository release scripts and redundant development comments.
+
 ## [2.2.4] - 2026-03-02
 
 ### ✨ Features & Enhancements
