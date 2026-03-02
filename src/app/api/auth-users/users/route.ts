@@ -9,7 +9,7 @@ export async function GET() {
     try {
         const sql = `SELECT json_agg(t) FROM (SELECT id, email, created_at, last_sign_in_at FROM auth.users ORDER BY created_at DESC) t;`;
 
-        const { stdout } = await execAsync(`docker exec supabase-db psql -U postgres -d postgres -t -c "${sql.replace(/\n/g, ' ')}"`);
+        const { stdout } = await execAsync(`docker exec supabase-db psql -U postgres -d postgres -t -A -c "${sql.replace(/\n/g, ' ')}"`);
 
         const output = stdout.trim();
         const users = output && output !== '' ? JSON.parse(output) : [];

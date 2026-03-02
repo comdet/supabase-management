@@ -1,4 +1,9 @@
 
+## [2.2.3] - 2026-03-02
+
+### 🐛 Bug Fixes & Refactoring
+- **Authentication JSON Parsing Hotfix**: Fixed a severe JSON parsing error (`Unexpected token '+'`) that crashed the Authentication Manager table. PostgreSQL's internal `psql` CLI was intrinsically line-wrapping overly long tuple payloads with a `+` symbol terminal break. Forced the output into `unaligned` execution mode (`-A`), guaranteeing strictly conformant un-wrapped JSON streams globally.
+
 ## [2.2.2] - 2026-03-02
 
 ### 🐛 Bug Fixes & Refactoring
