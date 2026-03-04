@@ -1,4 +1,14 @@
 
+
+## [2.3.0] - 2026-03-04
+
+### ✨ Features & Enhancements
+- **Edge Functions Shared Architecture**: Migrated shared types and constants into a centralized `_shared/` directory within `supabase/functions`. This structural improvement ensures that self-hosted deployments correctly bundle dependencies, resolving runtime import failures.
+
+### 🐛 Bug Fixes & Refactoring
+- **Database Role Permissions**: Resolved "Permission Denied" errors when accessing production tables. Specifically granted `authenticated` role access for SQL operations on the `profiles` and `notifications` tables.
+- **Authentication Stability**: Fixed several login-related issues identified in the self-hosted environment, ensuring more reliable user authentication flows under custom NGINX/Cloudflare configurations.
+
 ## [2.2.5] - 2026-03-02
 
 ### 🐛 Bug Fixes & Refactoring

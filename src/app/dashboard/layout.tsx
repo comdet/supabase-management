@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload, Globe, Zap, Users } from 'lucide-react';
+import { LogOut, LayoutDashboard, Server, Database, Save, HardDrive, ShieldCheck, Activity, Clock, TerminalSquare, FolderHeart, Settings, CloudDownload, Globe, Zap, Users, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -29,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { name: 'Supabase Main', href: '/dashboard/supabase', icon: Database },
                 { name: 'Edge Functions', href: '/dashboard/functions', icon: Zap },
                 { name: 'Database Tools', href: '/dashboard/database', icon: HardDrive },
+                { name: 'DB Grants', href: '/dashboard/database/grants', icon: KeyRound },
                 { name: 'Authentication', href: '/dashboard/auth', icon: Users },
             ]
         },
