@@ -8,7 +8,12 @@ When the user triggers this workflow (e.g., via `/release-new-version`), you MUS
 
 1. **Check Current Version & Determine New Version**:
    - Read `package.json` to extract the current `"version"` (e.g., `1.0.0`).
-   - Determine if the update is a `major`, `minor`, or `patch` based on recent conversation context, or ask the user if unsure. If the user doesn't specify, default to incrementing the `patch` version (e.g., `1.0.0` -> `1.0.1`).
+   - พิจารณาการขึ้นเวอร์ชันอย่างระมัดระวังตามหลักการ Semantic Versioning (SemVer):
+     - **Major**: เมื่อมีการเปลี่ยนแปลงโครงสร้างใหญ่ หรือสร้าง Breaking Changes
+     - **Minor**: เมื่อมีการเพิ่มฟีเจอร์ใหม่ที่ยังใช้งานร่วมกับของเดิมได้ (Backward compatible)
+     - **Patch**: เมื่อเป็นเพียงแค่การแก้ไขบั๊ก (Bug fixes) หรือปรับแก้โค้ดเพียงเล็กน้อย
+   - **สำคัญมาก:** ให้ตรวจสอบขนาดหน้างานและเนื้อหา Commit/Code ที่ถูกแก้ไขไปก่อนหน้า หากมีแค่แก้ไขเล็กน้อย หรือแก้แค่บั๊ก **ห้ามขึ้น Minor เด็ดขาด** ให้ใช้ Patch แทน
+   - **หากไม่แน่ใจ หรือการประเมินดูคลุมเครือ:** ให้สอบถามผู้ใช้ (USER) ทันทีเพื่อขอยืนยันว่าควรขึ้นรูปแบบไหน อย่าปรับเวอร์ชันเองโดยพลการ
 
 2. **Generate Changelog**:
    - Run `git log $(git describe --tags --abbrev=0)..HEAD --oneline` to view all commits since the last release tag.
