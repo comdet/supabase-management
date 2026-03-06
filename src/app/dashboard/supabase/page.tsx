@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Database, Play, Square, Download, Save, RefreshCw, Terminal, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Database, Play, Square, Download, Save, RefreshCw, Terminal, CheckCircle2, AlertCircle, Loader2, Edit2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 
 export default function SupabasePage() {
@@ -11,6 +11,8 @@ export default function SupabasePage() {
     const [message, setMessage] = useState({ type: '', text: '', details: '' });
 
     const [envContent, setEnvContent] = useState('');
+    const [originalEnvContent, setOriginalEnvContent] = useState('');
+    const [isEnvEditing, setIsEnvEditing] = useState(false);
     const [composeContent, setComposeContent] = useState('');
     const [studioTag, setStudioTag] = useState('latest');
 
@@ -23,6 +25,7 @@ export default function SupabasePage() {
                 try {
                     const resEnv = await axios.get('/api/supabase/env');
                     setEnvContent(resEnv.data.content);
+                    setOriginalEnvContent(resEnv.data.content);
                 } catch (err: unknown) {
                     console.warn('Failed to load .env', err);
                     setEnvContent('// Could not load .env file. Check your Supabase Project Path in Settings.');
@@ -81,6 +84,8 @@ export default function SupabasePage() {
             const res = await axios.post('/api/supabase/env', { content: envContent });
             if (res.data.success) {
                 showMessage('success', '.env file saved successfully.');
+                setOriginalEnvContent(envContent);
+                setIsEnvEditing(false);
             }
         } catch (err: unknown) {
             console.error('Save env error:', err);
@@ -254,14 +259,38 @@ export default function SupabasePage() {
                             </div>
 
                             {activeTab === 'env' && (
-                                <button
-                                    onClick={handleSaveEnv}
-                                    disabled={actionLoading !== null}
-                                    className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-black bg-white hover:bg-neutral-200 rounded-md transition-all disabled:opacity-50"
-                                >
-                                    {actionLoading === 'save-env' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    Save .env
-                                </button>
+                                <div className="flex gap-2">
+                                    {!isEnvEditing ? (
+                                        <button
+                                            onClick={() => setIsEnvEditing(true)}
+                                            className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-black bg-white hover:bg-neutral-200 rounded-md transition-all"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                            Edit .env
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setEnvContent(originalEnvContent);
+                                                    setIsEnvEditing(false);
+                                                }}
+                                                disabled={actionLoading !== null}
+                                                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-neutral-700 hover:bg-neutral-600 rounded-md transition-all disabled:opacity-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveEnv}
+                                                disabled={actionLoading !== null}
+                                                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-md transition-all disabled:opacity-50"
+                                            >
+                                                {actionLoading === 'save-env' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                Save .env
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             )}
                             {activeTab === 'compose' && (
                                 <span className="text-xs text-neutral-500 font-medium px-2">Read-only (Use updater on left)</span>
@@ -279,6 +308,7 @@ export default function SupabasePage() {
                                     value={envContent}
                                     onChange={(val) => setEnvContent(val || '')}
                                     options={{
+                                        readOnly: !isEnvEditing,
                                         minimap: { enabled: false },
                                         fontSize: 14,
                                         wordWrap: 'on',

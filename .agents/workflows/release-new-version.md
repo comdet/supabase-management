@@ -22,7 +22,7 @@ When the user triggers this workflow (e.g., via `/release-new-version`), you MUS
 4. **Verify Build**:
    - Run `npm run build` to ensure the application builds successfully without completely breaking.
 
-5. **Commit and Tag**:
+5. **Commit and Tag**: run line by line do not parallel, run and wait for result to config it actually execute.
    // turbo-all
    - `git add .`
    - `git commit -m "chore: release version v<NEW_VERSION>"`
