@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
+import fs from 'fs/promises';
+import dotenv from 'dotenv';
 import { getSetting } from '@/lib/db';
 
 const execPromise = promisify(exec);
@@ -35,7 +38,22 @@ export async function POST(req: Request) {
         }
 
         try {
-            const { stdout, stderr } = await execPromise(command, { cwd: supabaseProjectPath });
+            // Load .env explicitly to ensure commands like docker compose get the correct variables
+            // Standard exec does not load .env from the cwd automatically
+            let parsedCustomEnv = {};
+            try {
+                const envContentBase = await fs.readFile(path.join(supabaseProjectPath, '.env'), 'utf-8');
+                parsedCustomEnv = dotenv.parse(envContentBase);
+            } catch (envError) {
+                console.warn('Could not read or parse .env file in supabaseProjectPath. Fallback to default env.', envError);
+            }
+
+            const mergedEnv = { ...process.env, ...parsedCustomEnv };
+
+            const { stdout, stderr } = await execPromise(command, {
+                cwd: supabaseProjectPath,
+                env: mergedEnv
+            });
             return NextResponse.json({
                 success: true,
                 message: `Command executed successfully.`,

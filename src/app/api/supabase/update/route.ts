@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
+import dotenv from 'dotenv';
 import { getSetting } from '@/lib/db';
 
 const execPromise = promisify(exec);
@@ -75,7 +76,20 @@ export async function POST(req: Request) {
         const command = 'docker compose pull && docker compose down && docker compose up -d';
 
         try {
-            const { stdout, stderr } = await execPromise(command, { cwd: supabaseProjectPath });
+            let parsedCustomEnv = {};
+            try {
+                const envContentBase = await fs.readFile(path.join(supabaseProjectPath, '.env'), 'utf-8');
+                parsedCustomEnv = dotenv.parse(envContentBase);
+            } catch (envError) {
+                console.warn('Could not read or parse .env file in supabaseProjectPath. Fallback to default env.', envError);
+            }
+
+            const mergedEnv = { ...process.env, ...parsedCustomEnv };
+
+            const { stdout, stderr } = await execPromise(command, {
+                cwd: supabaseProjectPath,
+                env: mergedEnv
+            });
             return NextResponse.json({
                 success: true,
                 message: `Update cascade completed successfully.`,
