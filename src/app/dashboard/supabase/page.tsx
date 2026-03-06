@@ -13,7 +13,10 @@ export default function SupabasePage() {
     const [envContent, setEnvContent] = useState('');
     const [originalEnvContent, setOriginalEnvContent] = useState('');
     const [isEnvEditing, setIsEnvEditing] = useState(false);
+
     const [composeContent, setComposeContent] = useState('');
+    const [originalComposeContent, setOriginalComposeContent] = useState('');
+    const [isComposeEditing, setIsComposeEditing] = useState(false);
     const [studioTag, setStudioTag] = useState('latest');
 
     const [activeTab, setActiveTab] = useState<'env' | 'compose'>('env');
@@ -35,6 +38,7 @@ export default function SupabasePage() {
                 try {
                     const resCompose = await axios.get('/api/supabase/update');
                     setComposeContent(resCompose.data.content);
+                    setOriginalComposeContent(resCompose.data.content);
 
                     // Try to parse studio tag
                     const content = resCompose.data.content as string;
@@ -96,6 +100,24 @@ export default function SupabasePage() {
         }
     };
 
+    const handleSaveCompose = async () => {
+        setActionLoading('save-compose');
+        try {
+            const res = await axios.post('/api/supabase/compose', { content: composeContent });
+            if (res.data.success) {
+                showMessage('success', 'docker-compose.yml saved successfully. Note: You must manually run "Update & Restart" for changes to take effect if containers are already running.');
+                setOriginalComposeContent(composeContent);
+                setIsComposeEditing(false);
+            }
+        } catch (err: unknown) {
+            console.error('Save compose error:', err);
+            const errorResponse = err as { message: string };
+            showMessage('error', 'Failed to save docker-compose.yml file.', errorResponse.message);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
 
     const handleUpdateStudio = async () => {
         if (!studioTag) return;
@@ -110,6 +132,7 @@ export default function SupabasePage() {
                 const resCompose = await axios.get('/api/supabase/update');
                 if (resCompose.data.content) {
                     setComposeContent(resCompose.data.content);
+                    setOriginalComposeContent(resCompose.data.content);
                 }
             }
         } catch (err: unknown) {
@@ -292,8 +315,40 @@ export default function SupabasePage() {
                                     )}
                                 </div>
                             )}
+
                             {activeTab === 'compose' && (
-                                <span className="text-xs text-neutral-500 font-medium px-2">Read-only (Use updater on left)</span>
+                                <div className="flex gap-2">
+                                    {!isComposeEditing ? (
+                                        <button
+                                            onClick={() => setIsComposeEditing(true)}
+                                            className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-black bg-white hover:bg-neutral-200 rounded-md transition-all"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                            Edit Compose
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setComposeContent(originalComposeContent);
+                                                    setIsComposeEditing(false);
+                                                }}
+                                                disabled={actionLoading !== null}
+                                                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-neutral-700 hover:bg-neutral-600 rounded-md transition-all disabled:opacity-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveCompose}
+                                                disabled={actionLoading !== null}
+                                                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-md transition-all disabled:opacity-50"
+                                            >
+                                                {actionLoading === 'save-compose' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                Save Compose
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             )}
                         </div>
 
@@ -322,8 +377,9 @@ export default function SupabasePage() {
                                     path="docker-compose.yml"
                                     defaultLanguage="yaml"
                                     value={composeContent}
+                                    onChange={(val) => setComposeContent(val || '')}
                                     options={{
-                                        readOnly: true,
+                                        readOnly: !isComposeEditing,
                                         minimap: { enabled: false },
                                         fontSize: 14,
                                         wordWrap: 'on',
