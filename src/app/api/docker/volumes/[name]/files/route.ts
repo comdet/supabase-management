@@ -46,40 +46,23 @@ export async function GET(
             }
         });
 
-        await container.start();
-
-        const logStream = await container.logs({
-            stdout: true,
-            stderr: true,
-            follow: true
-        });
+        // Attach BEFORE starting to avoid race conditions
+        const stream = await container.attach({ stream: true, stdout: true, stderr: true });
 
         const output = await new Promise<string>((resolve, reject) => {
-            let data = '';
-            if (logStream && typeof (logStream as any).on === 'function') {
-                const stream = logStream as any;
-                stream.on('data', (chunk: Buffer) => {
-                    let offset = 0;
-                    while (offset < chunk.length) {
-                        if (chunk.length - offset < 8) {
-                            data += chunk.subarray(offset).toString('utf-8');
-                            break;
-                        }
-                        const length = chunk.readUInt32BE(offset + 4);
-                        offset += 8;
-                        if (offset + length <= chunk.length) {
-                            data += chunk.subarray(offset, offset + length).toString('utf-8');
-                            offset += length;
-                        } else {
-                            data += chunk.subarray(offset).toString('utf-8');
-                            break;
-                        }
-                    }
-                });
-                stream.on('end', () => resolve(data));
-                stream.on('error', (err: any) => reject(err));
-            }
+            let stdoutData = '';
+            const stdoutPassThrough = new (require('stream').PassThrough)();
+            stdoutPassThrough.on('data', (chunk: Buffer) => {
+                stdoutData += chunk.toString('utf-8');
+            });
+
+            docker.modem.demuxStream(stream, stdoutPassThrough, process.stderr);
+            stream.on('end', () => resolve(stdoutData));
+            stream.on('error', reject);
         });
+
+        await container.start();
+        await container.wait();
 
         await container.remove({ force: true });
 

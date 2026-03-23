@@ -96,36 +96,34 @@ export async function POST(req: Request) {
                 }
             });
 
-            await container.start();
-            const logStream = await container.logs({ stdout: true, follow: true });
+            // Attach BEFORE starting to avoid race conditions with binary streams
+            const stream = await container.attach({ stream: true, stdout: true, stderr: true });
 
             const writeStream = fs.createWriteStream(backupPathHost);
 
-            // Strip 8-byte header from stdout stream
-            await new Promise((resolve, reject) => {
-                if (!logStream || typeof (logStream as any).on !== 'function') return resolve(null);
-
-                const stream = logStream as NodeJS.ReadableStream;
-                stream.on('data', (chunk: Buffer) => {
-                    let offset = 0;
-                    while (offset < chunk.length) {
-                        if (chunk.length - offset < 8) break;
-                        const length = chunk.readUInt32BE(offset + 4);
-                        offset += 8;
-                        if (offset + length <= chunk.length) {
-                            writeStream.write(chunk.subarray(offset, offset + length));
-                            offset += length;
-                        } else {
-                            break;
-                        }
-                    }
+            const streamPromise = new Promise<void>((resolve, reject) => {
+                docker.modem.demuxStream(stream, writeStream, process.stderr);
+                stream.on('end', () => {
+                    writeStream.end();
+                    resolve();
                 });
-                stream.on('end', resolve);
                 stream.on('error', reject);
             });
 
+            await container.start();
+            await streamPromise;
+
+            // Wait for container to finish and check exit code
+            const waitResult = await container.wait();
             await container.remove({ force: true });
-            writeStream.end();
+
+            if (waitResult.StatusCode !== 0) {
+                // Clean up empty/corrupt backup file
+                if (fs.existsSync(backupPathHost)) {
+                    fs.unlinkSync(backupPathHost);
+                }
+                return NextResponse.json({ error: `Volume backup failed with exit code ${waitResult.StatusCode}` }, { status: 500 });
+            }
 
             return NextResponse.json({
                 message: 'Volume backup created',

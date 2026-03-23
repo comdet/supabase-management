@@ -99,29 +99,29 @@ export async function POST(req: Request) {
                 StdinOnce: true
             });
 
-            await container.start();
-
-            // Attach to the container's stdin stream
-            const streamObj = await container.attach({ stream: true, stdin: true, stdout: true, stderr: true });
-            const stream = streamObj as any;
+            // Attach BEFORE starting to avoid race conditions
+            const stream = await container.attach({ stream: true, stdin: true, stdout: true, stderr: true }) as any;
 
             const fileStream = fs.createReadStream(backupPath);
 
-            await new Promise((resolve, reject) => {
-                fileStream.pipe(stream);
-
-                fileStream.on('end', () => {
-                    stream.end();
-                });
-
-                // Wait for the container to exit
-                container.wait((err, data) => {
-                    if (err) return reject(err);
-                    resolve(data);
-                });
+            // Pipe backup data to container stdin
+            fileStream.pipe(stream);
+            fileStream.on('end', () => {
+                stream.end();
             });
 
+            // Drain stdout/stderr to prevent lockups
+            docker.modem.demuxStream(stream, process.stdout, process.stderr);
+
+            await container.start();
+
+            // Wait for the container to finish extraction
+            const waitResult = await container.wait();
             await container.remove({ force: true });
+
+            if (waitResult.StatusCode !== 0) {
+                return NextResponse.json({ error: `Volume restore failed with exit code ${waitResult.StatusCode}` }, { status: 500 });
+            }
 
             return NextResponse.json({ message: 'Volume restored successfully' });
         }

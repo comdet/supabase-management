@@ -47,43 +47,28 @@ export async function GET(
             }
         });
 
-        await container.start();
+        // Attach BEFORE starting to avoid race conditions with binary streams
+        const stream = await container.attach({ stream: true, stdout: true, stderr: true });
 
-        const logStream = await container.logs({
-            stdout: true,
-            stderr: false,
-            follow: true
+        const chunks: Buffer[] = [];
+        const stdoutPassThrough = new (require('stream').PassThrough)();
+        stdoutPassThrough.on('data', (chunk: Buffer) => {
+            chunks.push(chunk);
         });
 
-        // We need to strip the 8-byte multiplexing header from the steam
-        // Or we can just use child_process to docker exec -i / docker run ...
-        // Since 'cat' might return binary data, manual stripping is safer:
+        docker.modem.demuxStream(stream, stdoutPassThrough, process.stderr);
 
-        let fileBuffer = Buffer.alloc(0);
+        const streamPromise = new Promise<void>((resolve, reject) => {
+            stream.on('end', resolve);
+            stream.on('error', reject);
+        });
 
-        if (logStream && typeof (logStream as any).on === 'function') {
-            await new Promise((resolve, reject) => {
-                const stream = logStream as NodeJS.ReadableStream;
-                stream.on('data', (chunk: Buffer) => {
-                    let offset = 0;
-                    while (offset < chunk.length) {
-                        if (chunk.length - offset < 8) break;
-                        const length = chunk.readUInt32BE(offset + 4);
-                        offset += 8;
-                        if (offset + length <= chunk.length) {
-                            fileBuffer = Buffer.concat([fileBuffer, chunk.subarray(offset, offset + length)]);
-                            offset += length;
-                        } else {
-                            break;
-                        }
-                    }
-                });
-                stream.on('end', resolve);
-                stream.on('error', reject);
-            });
-        }
-
+        await container.start();
+        await streamPromise;
+        await container.wait();
         await container.remove({ force: true });
+
+        const fileBuffer = Buffer.concat(chunks);
 
         const filename = path.basename(safePath);
 
