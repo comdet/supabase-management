@@ -7,6 +7,7 @@ import fs from 'fs';
 import os from 'os';
 import axios from 'axios';
 import docker from '@/lib/docker';
+import { containerLabel, findEdgeRuntimeContainers } from '@/lib/edge-runtime';
 
 const execAsync = util.promisify(exec);
 
@@ -117,36 +118,37 @@ export async function POST(req: NextRequest) {
             }
         } catch (extractErr: any) {
             return NextResponse.json({ error: 'Failed to extract artifacts. Ensure "unzip" (Linux) or "tar" (Windows) is installed. Details: ' + extractErr.message }, { status: 500 });
-        }
-
-        // 3. Restart Edge Runtime
-        try {
-            // Find edge-runtime container using dockerode
-            const containers = await docker.listContainers();
-            const edgeContainerInfo = containers.find(c => c.Names.some(n => n.includes('edge-runtime')));
-
-            if (edgeContainerInfo) {
-                const container = docker.getContainer(edgeContainerInfo.Id);
-                await container.restart();
-                console.log('Successfully restarted edge-runtime container via Docker API');
-            } else {
-                console.warn('Could not find running edge-runtime container to restart.');
-                // Fallback attempt with compose just in case it's stopped completely or name changed drastically
-                await execAsync(`docker compose restart edge-runtime`, { cwd: projectPath });
+        } finally {
+            // 3. Cleanup — the zip is not needed once extracted (or failed)
+            try {
+                fs.unlinkSync(tmpFilePath);
+            } catch (e) {
+                console.error('Failed to cleanup temp file', e);
             }
-        } catch (dockerErr: any) {
-            console.error('Docker restart failed:', dockerErr);
-            return NextResponse.json({ success: true, message: 'Functions extracted successfully, but failed to restart edge-runtime container automatically. You may need to manually restart it.' });
         }
 
-        // 4. Cleanup
+        // 4. Restart Edge Runtime — until it restarts it keeps serving the old functions,
+        // so a failed restart is reported as an error, not as a successful deploy
+        const restarted: string[] = [];
         try {
-            fs.unlinkSync(tmpFilePath);
-        } catch (e) {
-            console.error('Failed to cleanup temp file', e);
+            const containers = await docker.listContainers({ all: true });
+            const targets = findEdgeRuntimeContainers(containers, functionsVolPath);
+            if (!targets.length) {
+                throw new Error(`no edge-runtime container found (looked for the container that mounts ${functionsVolPath}, then for image supabase/edge-runtime)`);
+            }
+
+            for (const target of targets) {
+                await docker.getContainer(target.Id).restart();
+                restarted.push(containerLabel(target));
+            }
+            console.log('Restarted edge runtime via Docker API:', restarted.join(', '));
+        } catch (dockerErr: unknown) {
+            console.error('Docker restart failed:', dockerErr);
+            const done = restarted.length ? ` (restarted: ${restarted.join(', ')})` : '';
+            return NextResponse.json({ error: `Functions were extracted to ${functionsVolPath}, but the edge runtime was NOT restarted${done}, so the previous functions are still running. Restart it by hand (docker restart <edge-runtime container>). Details: ${(dockerErr as Error).message}` }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true, message: 'Edge functions deployed and runtime restarted successfully' });
+        return NextResponse.json({ success: true, message: `Edge functions deployed and runtime restarted (${restarted.join(', ')})` });
 
     } catch (error: any) {
         console.error('Functions deploy error:', error);
