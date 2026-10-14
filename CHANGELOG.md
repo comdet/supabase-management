@@ -1,5 +1,14 @@
 
 
+## [2.4.3] - 2026-10-14
+
+### 🐛 Bug Fixes & Refactoring
+- **Edge Functions Deploy Restart**: The deploy looked for a container whose name contains `edge-runtime`, but self-hosted docker-compose names it `supabase-edge-functions` — so the runtime was never restarted, kept serving the old functions, and the deploy still reported success. It now restarts the container that mounts `volumes/functions` (falling back to the `supabase/edge-runtime` image), names it in the success message, and reports an error when no restart happened. The downloaded zip is always removed from `/tmp` (a failed restart used to leave it behind).
+- **Database Migrations Stop On Error**: Migrations ran with `psql -f` without `ON_ERROR_STOP`, so a failing file exited 0, was recorded in `schema_migrations` as applied, and the next files ran on top of it. Each file now runs with `ON_ERROR_STOP=1`: the run stops at the first failure, the failed file is not recorded (its transaction rolls back), the psql error is shown, and the list refreshes to show what did apply.
+
+### 🔧 CI
+- Release workflow uses Node 24 action runtimes (`actions/checkout@v7`, `actions/setup-node@v7`, `softprops/action-gh-release@v3`) and pins `ubuntu-24.04` (`ubuntu-latest` moves to Ubuntu 26 on 2026-10-19).
+
 ## [2.3.0] - 2026-03-04
 
 ### ✨ Features & Enhancements
