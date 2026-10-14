@@ -135,6 +135,7 @@ export default function DatabasePage() {
         } catch (err: unknown) {
             const error = err as { response?: { data?: { error?: string } }, message: string };
             showMessage('error', 'Failed to apply migrations.', error.response?.data?.error || error.message);
+            await loadMigrations(); // the run stops at the failed file: show which ones did apply
         } finally {
             setActionLoading(null);
         }

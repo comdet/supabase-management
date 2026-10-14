@@ -81,18 +81,35 @@ export async function POST(req: Request) {
             // 1. Copy to container
             await execAsync(`docker cp ${filePath} supabase-db:${containerTmpPath}`);
 
-            // 2. Execute
-            const res = await execAsync(`docker exec supabase-db psql -U postgres -d postgres -f ${containerTmpPath}`);
+            // 2. Execute — ON_ERROR_STOP makes psql stop at the first SQL error and exit
+            // non-zero (without it psql carries on and exits 0, and a failed file was
+            // recorded as applied). Stop here: a failed file is not recorded and later
+            // files, which may depend on it, are not run.
+            let res;
+            try {
+                res = await execAsync(`docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f ${containerTmpPath}`);
+            } catch (err) {
+                const e = err as { stdout?: string, stderr?: string, message: string };
+                const detail = (e.stderr || e.message).trim().split('\n').filter(l => !l.includes('NOTICE:')).slice(-6).join('\n');
+                return NextResponse.json({
+                    error: `${file.name} failed and was NOT recorded as applied; later migrations were not run (${results.length} applied before it).\n${detail}`,
+                    results: [...results, { name: file.name, output: e.stdout || '', error: detail }],
+                }, { status: 500 });
+            }
             results.push({ name: file.name, output: res.stdout });
 
             // 3. Mark as executed
             // Use native UPSERT standard from Supabase CLI history.go
             try {
-                // Remove the .sql extension from the name if needed, or keep the whole thing. 
+                // Remove the .sql extension from the name if needed, or keep the whole thing.
                 // The CLI inserts the base name without .sql sometimes, but we'll insert file.name as the name.
-                await execAsync(`docker exec supabase-db psql -U postgres -d postgres -c "INSERT INTO supabase_migrations.schema_migrations(version, name, statements) VALUES('${file.version}', '${file.name}', null) ON CONFLICT (version) DO UPDATE SET name = EXCLUDED.name, statements = EXCLUDED.statements;"`);
+                await execAsync(`docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "INSERT INTO supabase_migrations.schema_migrations(version, name, statements) VALUES('${file.version}', '${file.name}', null) ON CONFLICT (version) DO UPDATE SET name = EXCLUDED.name, statements = EXCLUDED.statements;"`);
             } catch (err) {
                 console.error('Failed to upsert schema_migrations for', file.version, err);
+                return NextResponse.json({
+                    error: `${file.name} was applied but could not be recorded in schema_migrations, so it still shows as pending: record it by hand before running migrations again. Later migrations were not run.`,
+                    results,
+                }, { status: 500 });
             }
         }
 
